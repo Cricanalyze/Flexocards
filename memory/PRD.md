@@ -28,6 +28,13 @@ Follow-up requests: rebrand to **FlexoCards** (Buddy Innovations and Technologie
 - Screenshot blocking is best-effort; OS and phone screenshots can't be fully blocked.
 - Changing the database doesn't migrate data unless “copy data” is on; settings stay in the platform DB.
 
+## Session (Nov 2026) — main4 import
+- Imported branch main4 and ran as-is. Email provider = Hostinger SMTP (EMAIL_PROVIDER=smtp env, SMTP_* env, SMTP_PASS secret); SMTP login verified. Clerk, ADMIN_EMAIL, Razorpay keys added by owner via secrets.
+- Saved cards now store a private preview image (rendered card incl. user's photo) in object storage: PUT/GET /api/me/cards/{id}/thumb; dashboard shows the previews (SavedCardThumb). Preview only replaced when a photo is present.
+- Admin template design editor (layout "custom"): drag/resize every element (photo, name, nickname, meta, rating, jersey, stats, sport, season, tagline, achievements, social), fonts (13 local fonts), size, weight, colour, accent toggle, alignment, element backgrounds, background image upload (/api/admin/uploads/image), bg colour/darken, border/radius. Files: admin/TemplateDesigner.jsx, admin/DesignerInspector.jsx, components/card/CustomLayout.jsx, lib/designDefaults.js.
+- Test iteration_1: backend 100%, frontend fixes applied (photo-less re-save, share-link preview, stats box height, cancel no longer switches layout).
+- Known: old preview/background files are not deleted from storage (no delete API).
+
 ## Backlog
 - P0: Auto-renewing plans (Razorpay Subscriptions / UPI Autopay) (3)
 - P0: Bulk team/academy cards from a spreadsheet with sponsor logo (5)

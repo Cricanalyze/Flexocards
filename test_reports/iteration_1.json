@@ -1,0 +1,41 @@
+{
+  "summary": "Tested both new features end to end, plus some regression checks. Backend: 16 of 16 pytest tests pass. They cover card preview PUT/GET (JPEG and PNG, bad mime returns 400, bad base64 returns 400, another user gets 404, no auth returns 401, the list includes thumb_at and leaves out the stored path), the admin image upload (owner check, 403 for non-admin, 400 for a non-image), creating and updating a custom template with the design saved and shown in the public /api/templates, and the design validator rejecting a javascript: background and a payload over 60KB. Frontend: Pro user saved a card with a photo, PUT /thumb returned 200, and the dashboard shows saved-card-image (540x756) with the photo. A card with no preview falls back to a rendered card without a photo. Admin design editor: 9 visible boxes and their resize handles render. Dragging the name box moved it from 24,316 to 54,266 and the inspector updated. Resizing updated W/H. Font (Anton), size (24) and colour (#FF0000) changed the preview. Hiding jersey removed its box. Background upload went to POST /api/admin/uploads/image and the image appears on the canvas. Arrow keys move the box (Shift = 10px). Apply then Save sets layout to 'custom'. Re-opening shows the same positions. After publishing, the template appears in the /create picker, and the exported 1080x1512 PNG matches the design. Built-in templates still render in the admin list (25) and in /create. Found 1 functional bug: re-saving a loaded card replaces its preview with a photo-less one.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/me/cards/{id}", "issue": "Deleting a card does not delete its stored preview object (thumbs/{user}/{card}-x.jpg). Each PUT /thumb also writes a new object and never removes the old one, so storage fills with orphaned files."},
+      {"endpoint": "POST/PUT /api/admin/templates (TemplateIn.design)", "issue": "Only the size and bg_image of the design are checked. Element fields (x/y/w/h/size numbers, font names, colours) are not checked. A wrong type (e.g. a string for size, or an unknown font) would be stored and could break how the card draws. This is admin-only, so low risk."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ExportBar.saveWithPreview / Create.jsx", "issue": "When a saved card is reopened from the dashboard (/create?card=id), its photo is not reloaded ('add your photo again'). Pressing Save then sends PUT /thumb with a render that has no photo, which replaces the good preview. Reproduced: the dashboard tile for TEST_PhotoSave went from showing the photo to the placeholder silhouette after reopen + Save. Fix: skip the thumb upload when state.photo has no src (blank photo) and the card already has thumb_at.", "selector": "[data-testid=save-card-button]", "priority": "HIGH"},
+      {"component": "ensureSaved (share link flow)", "issue": "When a card is created through 'Get public share link' (ensureSaved -> save(true)), no preview is stored. That card shows up in the dashboard without its photo.", "selector": "[data-testid=result-public-link-button]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Custom layout default design (designDefaults.js)", "issues": ["The stats box height (84px) is too small for 6 stats in 3 columns. The labels on the second row (HIGHEST SCORE / BATTING AVG / STRIKE RATE) are cut off at the bottom in the designer, in /create and in the export. Raise the default h to about 92 or shrink the padding."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_card_thumb_and_designer.py", "/app/test_reports/pytest/thumb_designer.xml"],
+  "action_items": [
+    "Do not replace an existing card preview with a photo-less render when Save is pressed on a reopened card that has no photo (ExportBar.saveWithPreview: check state.photo.src, or pass a flag from Create.jsx).",
+    "Optional: store a preview in the ensureSaved / public-share save path too.",
+    "Optional: delete the preview object on card delete and when a preview is replaced.",
+    "Optional: raise the default stats box height in designDefaults.js so the second-row labels are not cut off.",
+    "Optional: check the types of element fields in TemplateIn.design."
+  ],
+  "critical_code_review_comments": [
+    "SavedCardThumb fetches each preview with a separate authenticated blob request. That is fine for a few cards, but a dashboard with up to 100 saved cards makes 100 requests. Consider loading them lazily or with an IntersectionObserver.",
+    "TemplateDesigner Canvas: both the box and its resize handle attach onPointerMove, and the event bubbles, so setEl runs twice for each move. The result is correct because each update is computed from the start position, but it is wasted work.",
+    "Opening the design editor on a built-in template switches it to the 'custom' layout straight away, even if the user then cancels the editor. The layout select still shows custom until the user changes it back. Saving then silently turns the template into a custom one."
+  ],
+  "updated_files": ["/app/backend/tests/test_card_thumb_and_designer.py"],
+  "success_rate": {"backend": "100%", "frontend": "92%"},
+  "seed_data_creation": "Created and then deleted: template TEST_DesignerUI (tpl_7edc3a2a), and Pro cards TEST_thumb, TEST_PhotoSave and TEST_NoThumb. One uploaded background image (templates/<admin>/4b6cfb64...jpg) remains in object storage because there is no delete API. Testing also used 1 of the QA admin's 2 Free monthly card credits (one export).",
+  "test_credentials": "From /app/memory/test_credentials.md. Clerk asks for a new-device OTP (client-trust). Fill input[data-input-otp='true'] with 424242.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Get tokens with: export CLERK_OWN_SECRET_KEY from the uvicorn process env, then python qa_users.py tokens > /tmp/toks.json. The test file reads /tmp/toks.json. After the password step, Clerk sign-in goes to /sign-in/client-trust; fill input[data-input-otp='true'] with 424242. Retest: reopen a saved card -> Save without a photo -> the dashboard preview should keep the photo.",
+  "rca of the issue": "Create.jsx loads a saved card without its photo (photos are never stored; CardIn removes data.photo). ExportBar.saveWithPreview always renders thumbRef from the current state.photo (blank) and PUTs it to /thumb. That overwrites the earlier photo preview. Repro: save a card with a photo -> dashboard -> open the card -> Save -> dashboard shows the silhouette. Fix: only upload a preview when state.photo.src is set (or when the card has no thumb_at yet)."
+}

@@ -20,7 +20,7 @@ export const defaultDesign = () => ({
     nickname: T(24, 300, 312, 16, { ...MONO, size: 10, letter: 3, use_accent: true }),
     name: T(24, 316, 312, 42, { size: 38, weight: 900 }),
     meta: T(24, 360, 312, 16, { ...MONO, size: 10, letter: 1.5, color: "#CBD5E1" }),
-    stats: { x: 16, y: 386, w: 328, h: 84, visible: true, cols: 3, font: "JetBrains Mono", size: 15, label_size: 8,
+    stats: { x: 16, y: 384, w: 328, h: 92, visible: true, cols: 3, font: "JetBrains Mono", size: 15, label_size: 8,
       value_color: "#FFFFFF", label_color: "#94A3B8", box_color: "#FFFFFF", box_alpha: 0.07, accent_bar: true },
     sport: T(18, 478, 160, 14, { ...MONO, size: 9, letter: 2, color: "#94A3B8" }),
     season: T(182, 478, 160, 14, { ...MONO, size: 9, letter: 2, color: "#94A3B8", align: "right" }),

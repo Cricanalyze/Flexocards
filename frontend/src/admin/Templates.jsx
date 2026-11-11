@@ -77,7 +77,7 @@ function TemplateForm({ tpl, onClose }) {
             </div>
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 flex flex-wrap items-center justify-between gap-2" data-testid="template-designer-box">
               <p className="text-xs text-muted-foreground max-w-sm">{t.layout === "custom" ? "Move every element, set fonts, sizes, colours and a background image." : "Want full control? Open the design editor to move elements, change fonts and colours, and add a background image."}</p>
-              <Button size="sm" onClick={() => { if (t.layout !== "custom") pickLayout("custom"); setDesigning(true); }} data-testid="template-open-designer-button">Open design editor</Button>
+              <Button size="sm" onClick={() => setDesigning(true)} data-testid="template-open-designer-button">Open design editor</Button>
             </div>
             <div className="space-y-1"><Label>Available on plans</Label>
               <div className="flex flex-wrap gap-4">{plans.map((p) => (

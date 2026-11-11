@@ -46,6 +46,7 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
     try {
       const id = await ensureSaved();
       if (!id) return;
+      uploadPreview(id);
       const r = await api("post", `/me/cards/${id}/share`, { image: result.url });
       const url = `${window.location.origin}/c/${r.share_id}`;
       setLink(url);
@@ -73,9 +74,8 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
     return { url, format, name: `${slug(state.data.name)}-${format}-flexocards.png` };
   };
 
-  const saveWithPreview = async () => {
-    const id = await onSave();
-    if (!id) return;
+  const uploadPreview = async (id) => {
+    if (!id || !state.photo.src) return;
     try {
       await document.fonts.ready;
       const opts = { pixelRatio: 1.5, quality: 0.85, backgroundColor: "#0B0F17" };
@@ -83,6 +83,7 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
       await api("put", `/me/cards/${id}/thumb`, { image: await toJpeg(thumbRef.current, opts) });
     } catch (e) { toast.error("Card saved, but its preview image couldn't be stored."); }
   };
+  const saveWithPreview = async () => uploadPreview(await onSave());
 
   const run = async (format, mode) => {
     if (!sport || !template) return;
