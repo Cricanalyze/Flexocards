@@ -190,7 +190,7 @@ async def _send_emergent(cfg: dict, to: str, subject: str, html: str) -> str:
     return r.json().get("id", "")
 
 
-def _send_smtp_sync(cfg: dict, to: str, subject: str, html: str) -> str:
+def _send_smtp_sync(cfg: dict, to: str, subject: str, html: str, attachments=None) -> str:
     if not (cfg["smtp_host"] and cfg["smtp_user"] and cfg["smtp_pass"]):
         raise EmailError("SMTP is not fully set up (host, username and password are required).")
     msg = EmailMessage()
@@ -201,6 +201,9 @@ def _send_smtp_sync(cfg: dict, to: str, subject: str, html: str) -> str:
         msg["Reply-To"] = cfg["reply_to"]
     msg.set_content("Open this email in an HTML-capable client.")
     msg.add_alternative(html, subtype="html")
+    for name, data, mime in attachments or []:
+        main, sub = mime.split("/", 1)
+        msg.add_attachment(data, maintype=main, subtype=sub, filename=name)
     port, mode = int(cfg["smtp_port"]), cfg["smtp_secure"]
     try:
         if mode == "ssl":
@@ -217,8 +220,8 @@ def _send_smtp_sync(cfg: dict, to: str, subject: str, html: str) -> str:
     return ""
 
 
-async def send_email(cfg: dict, to: str, subject: str, html: str) -> str:
+async def send_email(cfg: dict, to: str, subject: str, html: str, attachments=None) -> str:
     _assert_safe_email(subject, html)
     if cfg["provider"] == "smtp":
-        return await asyncio.to_thread(_send_smtp_sync, cfg, to, subject, html)
+        return await asyncio.to_thread(_send_smtp_sync, cfg, to, subject, html, attachments)
     return await _send_emergent(cfg, to, subject, html)

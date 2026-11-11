@@ -29,8 +29,9 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
-import { SignIn, SignUp, Show } from "@clerk/react";
-import ClerkAuthProvider from "@/components/auth/ClerkAuthProvider";
+import { Show, AuthProvider } from "@/lib/auth";
+import SignInPage from "@/pages/SignIn";
+
 import { AppDataProvider } from "@/context/AppData";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/layout/Header";
@@ -83,7 +84,7 @@ function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <BrowserRouter>
-        <ClerkAuthProvider>
+        <AuthProvider>
           <AppDataProvider>
             <SiteStatusProvider>
             <ScrollTop />
@@ -107,8 +108,8 @@ function App() {
                 <Route path="/write" element={<RequireAccount><Write /></RequireAccount>} />
                 <Route path="/storybook" element={<RequireAccount><Storybook /></RequireAccount>} />
                 <Route path="/write/:id" element={<RequireAccount><PostEditor /></RequireAccount>} />
-                <Route path="/sign-in/*" element={<AuthPage><SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" withSignUp /></AuthPage>} />
-                <Route path="/sign-up/*" element={<AuthPage><SignUp routing="path" path="/sign-up" signInUrl="/sign-in" /></AuthPage>} />
+                <Route path="/sign-in/*" element={<AuthPage><SignInPage /></AuthPage>} />
+                <Route path="/sign-up/*" element={<AuthPage><SignInPage mode="sign-up" /></AuthPage>} />
               </Route>
               <Route path="/admin/*" element={<AdminApp />} />
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -117,7 +118,7 @@ function App() {
             <Toaster richColors position="top-center" />
             </SiteStatusProvider>
           </AppDataProvider>
-        </ClerkAuthProvider>
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   );

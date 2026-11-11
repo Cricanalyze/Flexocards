@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Show } from "@clerk/react";
+import { Show } from "@/lib/auth";
 import { toast } from "sonner";
 import { Trash2, Pencil, Crown, Eye, Globe, PenLine, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";

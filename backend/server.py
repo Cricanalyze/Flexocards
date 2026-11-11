@@ -29,22 +29,24 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 try:
-    from backend.clerk_auth import clerk_router, require_user, _publishable_key, _secret_key
+    from backend.own_auth import router as auth_router, require_user, revoke_sessions, has_session, bind as bind_auth, prepare_indexes as auth_indexes
     from backend.seed_data import SPORTS
     from backend.seed_catalog import TEMPLATES, PLANS, LAYOUTS, BACKGROUNDS, BG_TIER_FEATURE, COLLECTIONS
     from backend.rbac import ROLES, RANK, PERMISSIONS, ROLE_DEFAULTS, STAFF_ROLES, RETIRED_ROLES, effective_role, effective_perms
     from backend.storage import init_storage, put_object, get_object, APP_PREFIX
     from backend import settings_store
     from backend.mailer import send_email, render, EmailError
+    from backend.invoice_pdf import invoice_pdf
     from backend import email_templates as ET
 except ModuleNotFoundError:
-    from clerk_auth import clerk_router, require_user, _publishable_key, _secret_key
+    from own_auth import router as auth_router, require_user, revoke_sessions, has_session, bind as bind_auth, prepare_indexes as auth_indexes
     from seed_data import SPORTS
     from seed_catalog import TEMPLATES, PLANS, LAYOUTS, BACKGROUNDS, BG_TIER_FEATURE, COLLECTIONS
     from rbac import ROLES, RANK, PERMISSIONS, ROLE_DEFAULTS, STAFF_ROLES, RETIRED_ROLES, effective_role, effective_perms
     from storage import init_storage, put_object, get_object, APP_PREFIX
     import settings_store
     from mailer import send_email, render, EmailError
+    from invoice_pdf import invoice_pdf
     import email_templates as ET
 
 client = AsyncIOMotorClient(os.environ["MONGO_URL"])
@@ -75,7 +77,7 @@ api = APIRouter(prefix="/api")
 logger = logging.getLogger("rivalcard")
 logging.basicConfig(level=logging.INFO)
 
-ENV = "live" if _publishable_key().startswith("pk_live_") else "preview"
+ENV = "live" if os.environ.get("CLERK_OWN_PUBLISHABLE_KEY", "").startswith("pk_live_") else "preview"
 IN_ENV = {"env": {"$in": [ENV, None]}}
 NOFIELDS = {"_id": 0}
 ACTIVE_STATES = ["active", "trialing", "past_due"]
@@ -108,28 +110,14 @@ def rate_limit(request: Request, bucket: str, limit: int, window: int = 60):
     _hits[key] = arr
 
 
-# ---------- Clerk backend helpers ----------
-def _clerk(method, path, **kw):
-    r = requests.request(method, f"https://api.clerk.com/v1{path}", timeout=10,
-                         headers={"Authorization": f"Bearer {_secret_key()}", "User-Agent": "flexocards-app"}, **kw)
-    r.raise_for_status()
-    return r.json()
+# ---------- auth helpers ----------
+async def _send_login_code(email: str, code: str, minutes: int) -> bool:
+    log = await _deliver(email, ET.auth_code("verification_code", code, minutes), "auth:otp")
+    return log["status"] == "sent"
 
 
-def clerk_profile(user_id: str) -> dict:
-    u = _clerk("GET", f"/users/{user_id}")
-    verified = [e["email_address"].lower() for e in u.get("email_addresses", [])
-                if (e.get("verification") or {}).get("status") == "verified"]
-    primary = next((e["email_address"] for e in u.get("email_addresses", []) if e["id"] == u.get("primary_email_address_id")), "")
-    name = " ".join(x for x in [u.get("first_name"), u.get("last_name")] if x) or primary.split("@")[0]
-    return {"email": primary.lower(), "verified": verified, "name": name, "last_sign_in_at": u.get("last_sign_in_at")}
-
-
-def revoke_clerk_sessions(user_id: str) -> int:
-    sessions = _clerk("GET", "/sessions", params={"user_id": user_id, "status": "active"})
-    for s in sessions:
-        _clerk("POST", f"/sessions/{s['id']}/revoke")
-    return len(sessions)
+async def revoke_clerk_sessions(user_id: str) -> int:
+    return await revoke_sessions(user_id)
 
 
 # ---------- members / auth ----------
@@ -138,7 +126,7 @@ async def _load_member(user: dict) -> dict:
     m = await db.users.find_one({"user_id": uid}, NOFIELDS)
     is_new = m is None
     if m is None or not m.get("role"):
-        prof = clerk_profile(uid)
+        prof = {"email": user["email"], "verified": [user["email"]], "name": user.get("name") or user["email"].split("@")[0]}
         admins = {e.strip().lower() for e in os.environ.get("ADMIN_EMAIL", "").split(",") if e.strip()}
         role = "super_admin" if admins & set(prof["verified"]) else "user"
         await db.users.update_one({"user_id": uid, "role": {"$in": [None, ""]}}, {"$set": {"role": role}})
@@ -163,9 +151,9 @@ async def current_member(user: dict = Depends(require_user)) -> dict:
 
 
 async def optional_member(request: Request) -> Optional[dict]:
-    if not request.headers.get("authorization"):
+    if not has_session(request):
         return None
-    return await _load_member(require_user(request))
+    return await _load_member(await require_user(request))
 
 
 def require_perm(perm: str):
@@ -276,6 +264,7 @@ async def migrate_catalog():
 
 @app.on_event("startup")
 async def startup():
+    bind_auth(lambda: db, _send_login_code)
     await settings_store.load_all(cfg_db)
     dbc = settings_store.get("database")
     if dbc["enabled"] and dbc["url"]:
@@ -313,6 +302,7 @@ async def storybook_reminder_loop():
 
 
 async def prepare_db():
+    await auth_indexes()
     for old, new in RETIRED_ROLES.items():
         await db.users.update_many({"role": old}, {"$set": {"role": new}})
     await migrate_catalog()
@@ -643,13 +633,13 @@ async def activate_payment(pay: dict, rzp_payment_id: str, via: str):
         until = iso(start + timedelta(days=int(pay.get("qty") or 30)))
         await db.users.update_one({"user_id": pay["user_id"]}, {"$set": {"storybook_until": until}})
         if pay.get("user_email"):
-            notify(pay["user_email"], ET.purchase(pay["item_label"], pay["amount_inr"], [("Storybook active until", until[:10])], rzp_payment_id), "receipt")
+            await notify_paid(pay["id"], ET.purchase(pay["item_label"], pay["amount_inr"], [("Storybook active until", until[:10])], rzp_payment_id))
         return
     if pay.get("kind") in ("pack", "watermark"):
         field = "bonus_cards" if pay["kind"] == "pack" else "watermark_passes"
         await db.users.update_one({"user_id": pay["user_id"]}, {"$inc": {field: int(pay["qty"])}})
         if pay.get("user_email"):
-            notify(pay["user_email"], ET.purchase(pay["item_label"], pay["amount_inr"], [("Added", f"{pay['qty']} {'cards' if pay['kind'] == 'pack' else 'passes'}")], rzp_payment_id), "receipt")
+            await notify_paid(pay["id"], ET.purchase(pay["item_label"], pay["amount_inr"], [("Added", f"{pay['qty']} {'cards' if pay['kind'] == 'pack' else 'passes'}")], rzp_payment_id))
         return
     plan = await db.plans.find_one({"id": pay["plan_id"]}, NOFIELDS)
     delta = relativedelta(months=1) if pay["cycle"] == "month" else relativedelta(years=1)
@@ -674,7 +664,7 @@ async def activate_payment(pay: dict, rzp_payment_id: str, via: str):
     await db.payments.update_one({"id": pay["id"]}, {"$set": {"subscription_id": sub_id}})
     if pay.get("user_email"):
         end = (await db.subscriptions.find_one({"id": sub_id}, NOFIELDS))["end_at"][:10]
-        notify(pay["user_email"], ET.receipt(plan["name"], pay["cycle"], pay["amount_inr"], plan["cards_per_month"], end, rzp_payment_id), "receipt")
+        await notify_paid(pay["id"], ET.receipt(plan["name"], pay["cycle"], pay["amount_inr"], plan["cards_per_month"], end, rzp_payment_id))
 
 
 class VerifyIn(BaseModel):
@@ -1002,7 +992,7 @@ async def accept_invitation(body: AcceptIn, request: Request, member: dict = Dep
     inv = await db.admin_invitations.find_one({"token_hash": _hash(body.token)}, NOFIELDS)
     if not inv or inv["status"] != "pending" or inv["expires_at"] < iso():
         raise HTTPException(400, "This invitation is invalid, used, revoked or expired.")
-    if inv["email"] not in clerk_profile(member["user_id"])["verified"]:
+    if inv["email"] != (member.get("email") or "").lower():
         raise HTTPException(403, "Sign in with the verified email address this invitation was sent to.")
     r = await db.admin_invitations.update_one({"id": inv["id"], "status": "pending"},
                                               {"$set": {"status": "accepted", "accepted_by": member["user_id"], "accepted_at": iso()}})
@@ -1154,7 +1144,7 @@ async def admin_user_patch(user_id: str, body: UserPatch, member: dict = Depends
     revoked = 0
     if upd.get("status") == "suspended":
         try:
-            revoked = revoke_clerk_sessions(user_id)
+            revoked = await revoke_sessions(user_id)
         except requests.RequestException:
             logger.warning("session revoke failed for %s", user_id)
     action = {"suspended": "user.suspended", "active": "user.reactivated"}.get(upd.get("status"), "user.updated")
@@ -1167,7 +1157,7 @@ async def admin_revoke(user_id: str, member: dict = Depends(require_perm("users.
     t = await _target(user_id)
     _guard_staff_target(member, t)
     try:
-        n = revoke_clerk_sessions(user_id)
+        n = await revoke_sessions(user_id)
     except requests.RequestException:
         raise HTTPException(502, "Could not reach the auth provider. Try again.")
     await audit(member, "user.sessions_revoked", user_id, {"count": n})
@@ -1190,7 +1180,7 @@ async def admin_soft_delete(user_id: str, body: ConfirmIn, member: dict = Depend
     await db.saved_cards.delete_many({"user_id": user_id})
     await db.users.update_one({"user_id": user_id}, {"$set": {"status": "deleted", "deleted_at": iso(), "role": "user", "permissions": None}})
     try:
-        revoke_clerk_sessions(user_id)
+        await revoke_sessions(user_id)
     except requests.RequestException:
         pass
     await audit(member, "user.soft_deleted", user_id, {"reason": body.reason})
@@ -1888,11 +1878,11 @@ def render_tpl(cfg: dict, tpl: dict) -> str:
     return render({**cfg, "social": settings_store.get("social")}, tpl["heading"], tpl["paras"], tpl["cta"], tpl["details"], tpl["eyebrow"], tpl["code"])
 
 
-async def _deliver(to: str, tpl: dict, kind: str, cfg: dict = None):
+async def _deliver(to: str, tpl: dict, kind: str, cfg: dict = None, attachments=None):
     cfg = cfg or email_cfg()
     log = {"id": new_id(), "to": to, "subject": tpl["subject"], "kind": kind, "provider": cfg["provider"], "created_at": iso()}
     try:
-        await send_email(cfg, to, tpl["subject"], render_tpl(cfg, tpl))
+        await send_email(cfg, to, tpl["subject"], render_tpl(cfg, tpl), attachments)
         log["status"] = "sent"
     except (EmailError, ValueError, httpx.HTTPError) as e:
         log.update(status="failed", error=str(e)[:300])
@@ -1902,8 +1892,25 @@ async def _deliver(to: str, tpl: dict, kind: str, cfg: dict = None):
     return log
 
 
-def notify(to: str, tpl: dict, kind: str = "notice"):
-    asyncio.create_task(_deliver(to, tpl, kind))
+def notify(to: str, tpl: dict, kind: str = "notice", attachments=None):
+    asyncio.create_task(_deliver(to, tpl, kind, attachments=attachments))
+
+
+async def notify_paid(pay_id: str, tpl: dict):
+    """Every paid order gets its invoice: details in the email body + PDF attached."""
+    pay = await db.payments.find_one({"id": pay_id}, NOFIELDS)
+    if not pay or not pay.get("user_email"):
+        return
+    inv = build_invoice(pay)
+    tax_rows = [(t["name"], f"₹{t['amount']:.2f}") for t in inv["taxes"]]
+    tpl = {**tpl, "paras": [*tpl["paras"][:1], f"Your {inv['title'].lower()} {inv['number']} is attached as a PDF. You can also download it any time from your dashboard."],
+           "details": [("Invoice no", inv["number"]), *(tpl.get("details") or []), *tax_rows]}
+    try:
+        files = [(f"{inv['number']}.pdf", invoice_pdf(inv), "application/pdf")]
+    except Exception as e:
+        logger.error("invoice pdf failed for %s: %s", pay_id, e)
+        files = None
+    notify(pay["user_email"], tpl, "receipt", files)
 
 
 def _rzp_view() -> dict:
@@ -2507,12 +2514,12 @@ async def admin_set_site(body: SiteIn, member: dict = Depends(require_perm("sett
 
 
 _STAFF_CACHE: dict = {}
-GATE_OPEN = ("/api/site/", "/api/clerk/", "/api/admin/", "/api/billing/webhook", "/api/billing/config")
+GATE_OPEN = ("/api/site/", "/api/clerk/", "/api/auth/", "/api/admin/", "/api/billing/webhook", "/api/billing/config")
 
 
 async def _is_staff_request(request: Request) -> bool:
     try:
-        uid = require_user(request)["user_id"]
+        uid = (await require_user(request))["user_id"]
     except HTTPException:
         return False
     hit = _STAFF_CACHE.get(uid)
@@ -2537,7 +2544,7 @@ async def site_gate(request: Request, call_next):
 
 app.include_router(api)
 app.include_router(admin)
-app.include_router(clerk_router)
+app.include_router(auth_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
                    allow_methods=["*"], allow_headers=["*"])
 

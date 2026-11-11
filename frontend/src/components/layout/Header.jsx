@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Show, UserButton } from "@clerk/react";
+import { Show } from "@/lib/auth";
+import { UserButton } from "@/components/auth/UserButton";
 import { useTheme } from "next-themes";
 import { Menu, Moon, Sun, Shield, LayoutDashboard, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";

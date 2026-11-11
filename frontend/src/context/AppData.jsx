@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { useAuth } from "@clerk/react";
+import { useAuth } from "@/lib/auth";
 import { API, useApi } from "@/lib/api";
 
 const Ctx = createContext(null);

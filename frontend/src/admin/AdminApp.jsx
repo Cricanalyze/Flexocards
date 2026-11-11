@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, Link } from "react-router-dom";
-import { Show, UserButton } from "@clerk/react";
+import { Show } from "@/lib/auth";
+import { UserButton } from "@/components/auth/UserButton";
 import { BarChart3, Users, CreditCard, Package, Trophy, LayoutTemplate, ShieldCheck, ScrollText, Flag, ArrowLeft, Newspaper, Settings as SettingsIcon, Ticket } from "lucide-react";
 import Coupons from "./Coupons";
 import Blog from "./Blog";

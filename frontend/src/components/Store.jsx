@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { Show } from "@clerk/react";
+import { Show } from "@/lib/auth";
 import { toast } from "sonner";
 import { Zap, Droplets, Ticket, Receipt, Loader2, Check, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
