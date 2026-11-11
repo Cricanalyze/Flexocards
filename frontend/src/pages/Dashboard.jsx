@@ -11,6 +11,7 @@ import { useApi, errMsg, fmtDate, fmtDateTime, inr } from "@/lib/api";
 import { PageSkeleton, ListSkeleton } from "@/components/Skeletons";
 import { downloadInvoicePdf } from "@/lib/invoicePdf";
 import { ReferralCard } from "@/components/Referral";
+import { SavedCardThumb } from "@/components/SavedCardThumb";
 
 function Inner() {
   const { me, meError, sports, templates, refreshMe } = useAppData();
@@ -84,11 +85,15 @@ function Inner() {
       <div className="mb-8"><ReferralCard /></div>
       <div>
         <h2 className="font-display font-black uppercase text-2xl">Saved cards</h2>
-        <p className="text-sm text-muted-foreground">Only card details are saved — re-add your photo when you open one. Paid plans can edit a card for 6 hours after creating it.</p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4" data-testid="saved-cards-list">
+        <p className="text-sm text-muted-foreground">Your saved cards appear here with your photo. To edit, open a card and add your photo again. Paid plans can edit a card for 6 hours after creating it.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4" data-testid="saved-cards-list">
           {cards === null ? <ListSkeleton n={3} /> : cards.length === 0 ? <p className="text-sm text-muted-foreground" data-testid="saved-cards-empty">No saved cards yet.</p> :
             cards.map((c) => (
-              <div key={c.id} className="rounded-xl border border-border p-4 flex items-center justify-between gap-3" data-testid={`saved-card-${c.id}`}>
+              <div key={c.id} className="rounded-xl border border-border p-3 flex flex-col gap-3" data-testid={`saved-card-${c.id}`}>
+                <Link to={`/create?card=${c.id}`} className="block transition-transform duration-300 hover:-translate-y-1" data-testid={`saved-card-thumb-link-${c.id}`}>
+                  <SavedCardThumb card={c} sport={sports.find((s) => s.id === c.sport_id)} template={templates.find((t) => t.id === c.template_id)} />
+                </Link>
+                <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-display font-bold uppercase text-lg truncate">{c.title || c.data?.name || "Untitled"}</p>
                   <p className="text-xs text-muted-foreground truncate">{sports.find((s) => s.id === c.sport_id)?.name} · {templates.find((t) => t.id === c.template_id)?.name} · {fmtDate(c.updated_at)}</p>
@@ -101,6 +106,7 @@ function Inner() {
                 <div className="flex gap-1 shrink-0">
                   <Button asChild size="icon" variant="ghost" data-testid={`saved-card-open-${c.id}`}><Link to={`/create?card=${c.id}`} aria-label={c.editable ? "Edit" : "Open"}>{c.editable ? <Pencil className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</Link></Button>
                   <Button size="icon" variant="ghost" onClick={() => del(c.id)} data-testid={`saved-card-delete-${c.id}`} aria-label="Delete"><Trash2 className="w-4 h-4" /></Button>
+                </div>
                 </div>
               </div>
             ))}

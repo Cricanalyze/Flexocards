@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
-import { toPng } from "html-to-image";
+import { toPng, toJpeg } from "html-to-image";
 import { toast } from "sonner";
 import { Download, Share2, Loader2, Save, Copy, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
   const { refreshMe, me } = useAppData();
   const cardRef = useRef(null);
   const storyRef = useRef(null);
+  const thumbRef = useRef(null);
   const created = useRef(false);
   const [wm, setWm] = useState(true);
   const [busy, setBusy] = useState("");
@@ -70,6 +71,17 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
       api("post", "/events", { type: "card_created", sport_id: sport.id, template_id: template.id }).catch(() => {});
     }
     return { url, format, name: `${slug(state.data.name)}-${format}-flexocards.png` };
+  };
+
+  const saveWithPreview = async () => {
+    const id = await onSave();
+    if (!id) return;
+    try {
+      await document.fonts.ready;
+      const opts = { pixelRatio: 1.5, quality: 0.85, backgroundColor: "#0B0F17" };
+      await toJpeg(thumbRef.current, opts);
+      await api("put", `/me/cards/${id}/thumb`, { image: await toJpeg(thumbRef.current, opts) });
+    } catch (e) { toast.error("Card saved, but its preview image couldn't be stored."); }
   };
 
   const run = async (format, mode) => {
@@ -123,7 +135,7 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
         <B format="story" mode="download" icon={Download} label="Story PNG" />
         <B format="story" mode="share" icon={Share2} label="Share" />
         {isSignedIn ? (
-          <Button variant="outline" onClick={onSave} disabled={saving || !canSave} data-testid="save-card-button" className="rounded-full hover:bg-accent hover:text-foreground"><Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}</Button>
+          <Button variant="outline" onClick={saveWithPreview} disabled={saving || !canSave} data-testid="save-card-button" className="rounded-full hover:bg-accent hover:text-foreground"><Save className="w-4 h-4 mr-1" />{saving ? "Saving…" : "Save"}</Button>
         ) : (
           <Button asChild variant="ghost" className="rounded-full" data-testid="sign-in-to-save-link"><Link to="/sign-in">Sign in to save</Link></Button>
         )}
@@ -132,6 +144,7 @@ export function ExportBar({ state, sport, template, onSave, saving, isSignedIn, 
       <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }}>
         <PlayerCard ref={cardRef} template={template} sport={sport} data={state.data} photo={state.photo} watermark={wm} />
         <StoryCard ref={storyRef} template={template} sport={sport} data={state.data} photo={state.photo} watermark={wm} />
+        <PlayerCard ref={thumbRef} template={template} sport={sport} data={state.data} photo={state.photo} watermark={false} />
       </div>
 
       <Dialog open={!!result} onOpenChange={(o) => !o && setResult(null)}>

@@ -117,7 +117,7 @@ export default function Create() {
     if (cardId && isSignedIn) {
       api("get", "/me/cards").then((cards) => {
         const c = cards.find((x) => x.id === cardId);
-        if (c) { setLoaded(c); startedAt.current = new Date(c.created_at).getTime(); update({ sportId: c.sport_id, templateId: c.template_id, data: { ...blankData(sports.find((x) => x.id === c.sport_id)), ...c.data } }, false); setSavedId(c.id); setTab("photo"); toast.message("Saved card loaded. Add your photo again — photos are never stored."); }
+        if (c) { setLoaded(c); startedAt.current = new Date(c.created_at).getTime(); update({ sportId: c.sport_id, templateId: c.template_id, data: { ...blankData(sports.find((x) => x.id === c.sport_id)), ...c.data } }, false); setSavedId(c.id); setTab("photo"); toast.message("Saved card loaded. To edit, add your photo again."); }
       }).catch(() => {});
     }
   }, [sports, templates]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -132,7 +132,7 @@ export default function Create() {
       let id = savedId;
       if (savedId) await api("put", `/me/cards/${savedId}`, body);
       else { const c = await api("post", "/me/cards", body); id = c.id; setSavedId(c.id); setLoaded(c); setParams({ card: c.id }, { replace: true }); }
-      if (!quiet) toast.success("Card saved to your account (photo not stored).");
+      if (!quiet) toast.success("Card saved — you'll find it with your photo in your dashboard.");
       return id;
     } catch (e) { toast.error(errMsg(e)); return null; } finally { setSaving(false); }
   };

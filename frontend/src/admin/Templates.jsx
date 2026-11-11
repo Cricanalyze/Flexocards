@@ -14,10 +14,12 @@ import { useAppData } from "@/context/AppData";
 import { ScaledCard } from "@/components/card/PlayerCard";
 import { demoFor, CATEGORY_LABELS } from "@/lib/cardUtils";
 import { useMeta, PageHead } from "./AdminApp";
+import { TemplateDesigner } from "./TemplateDesigner";
+import { defaultDesign } from "@/lib/designDefaults";
 
-const LABEL = (l) => l.split("_").map((x) => x[0].toUpperCase() + x.slice(1)).join(" ");
+const LABEL = (l) => (l === "custom" ? "Custom design (editor)" : l.split("_").map((x) => x[0].toUpperCase() + x.slice(1)).join(" "));
 const COLLECTIONS = { free: ["free", "basic", "pro", "team"], basic: ["basic", "pro", "team"], pro: ["pro", "team"], premium: ["pro", "team"], exclusive: ["team"] };
-const BLANK = { name: "", badge: "NEW", layout: "classic_athlete", collection: "free", plans: COLLECTIONS.free, description: "", accent: "#D4AF37", sports: [], recommended: [], frame_image: "", watermark_free: true, active: false, order: 100 };
+const BLANK = { name: "", badge: "NEW", layout: "classic_athlete", collection: "free", plans: COLLECTIONS.free, description: "", accent: "#D4AF37", sports: [], recommended: [], frame_image: "", watermark_free: true, active: false, order: 100, design: {} };
 const strip = ({ id, tier, ...b }) => ({ ...BLANK, ...b, order: Number(b.order) || 0 });
 
 function FrameUpload({ value, onChange }) {
@@ -47,6 +49,8 @@ function TemplateForm({ tpl, onClose }) {
   const meta = useMeta();
   const { sports, plans, loadCatalog } = useAppData();
   const [t, setT] = useState(tpl ? { ...BLANK, ...tpl } : BLANK);
+  const [designing, setDesigning] = useState(false);
+  const pickLayout = (v) => setT((s) => ({ ...s, layout: v, design: v === "custom" && !s.design?.els ? defaultDesign() : s.design }));
   const demo = sports.length ? demoFor(0, sports) : null;
   const save = async () => {
     try { tpl ? await api("put", `/admin/templates/${tpl.id}`, strip(t)) : await api("post", "/admin/templates", strip(t)); toast.success("Template saved"); loadCatalog(); onClose(true); }
@@ -63,13 +67,17 @@ function TemplateForm({ tpl, onClose }) {
               <div className="space-y-1"><Label>Name</Label><Input value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} data-testid="template-name-input" /></div>
               <div className="space-y-1"><Label>Badge</Label><Input value={t.badge} maxLength={14} onChange={(e) => setT({ ...t, badge: e.target.value })} data-testid="template-badge-input" /></div>
               <div className="space-y-1"><Label>Base layout</Label>
-                <Select value={t.layout} onValueChange={(v) => setT({ ...t, layout: v })}><SelectTrigger data-testid="template-layout-select"><SelectValue /></SelectTrigger>
+                <Select value={t.layout} onValueChange={pickLayout}><SelectTrigger data-testid="template-layout-select"><SelectValue /></SelectTrigger>
                   <SelectContent>{meta.layouts.map((l) => <SelectItem key={l} value={l}>{LABEL(l)}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-1"><Label>Collection</Label>
                 <Select value={t.collection} onValueChange={(v) => setT({ ...t, collection: v, plans: COLLECTIONS[v] })}><SelectTrigger data-testid="template-collection-select"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.keys(COLLECTIONS).map((c) => <SelectItem key={c} value={c}>{LABEL(c)}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-1"><Label>Accent colour</Label><div className="flex gap-2"><input type="color" value={t.accent} onChange={(e) => setT({ ...t, accent: e.target.value.toUpperCase() })} className="h-10 w-12" data-testid="template-accent-input" /><Input value={t.accent} onChange={(e) => setT({ ...t, accent: e.target.value })} /></div></div>
               <div className="space-y-1"><Label>Display order</Label><Input type="number" value={t.order} onChange={(e) => setT({ ...t, order: e.target.value })} data-testid="template-order-input" /></div>
+            </div>
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 flex flex-wrap items-center justify-between gap-2" data-testid="template-designer-box">
+              <p className="text-xs text-muted-foreground max-w-sm">{t.layout === "custom" ? "Move every element, set fonts, sizes, colours and a background image." : "Want full control? Open the design editor to move elements, change fonts and colours, and add a background image."}</p>
+              <Button size="sm" onClick={() => { if (t.layout !== "custom") pickLayout("custom"); setDesigning(true); }} data-testid="template-open-designer-button">Open design editor</Button>
             </div>
             <div className="space-y-1"><Label>Available on plans</Label>
               <div className="flex flex-wrap gap-4">{plans.map((p) => (
@@ -90,6 +98,7 @@ function TemplateForm({ tpl, onClose }) {
             <Button onClick={save} data-testid="template-save-button">Save template</Button>
           </div>
         </div>
+        {designing && <TemplateDesigner t={t} onCancel={() => setDesigning(false)} onDone={(design) => { setT((s) => ({ ...s, layout: "custom", design })); setDesigning(false); }} />}
       </DialogContent>
     </Dialog>
   );

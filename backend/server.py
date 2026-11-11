@@ -817,8 +817,8 @@ def edit_state(card: dict, ent: dict) -> dict:
 
 def public_card(c: dict, ent: dict) -> dict:
     share = c.get("share")
-    return {**{k: v for k, v in c.items() if k != "share"}, **edit_state(c, ent),
-            "share_id": share["id"] if share else None}
+    return {**{k: v for k, v in c.items() if k not in ("share", "thumb")}, **edit_state(c, ent),
+            "share_id": share["id"] if share else None, "thumb_at": (c.get("thumb") or {}).get("at")}
 
 
 @api.get("/me/cards")
@@ -855,6 +855,41 @@ async def update_card(card_id: str, body: CardIn, member: dict = Depends(current
 
 class ShareIn(BaseModel):
     image: str = Field(max_length=12_000_000)
+
+
+@api.put("/me/cards/{card_id}/thumb")
+async def set_card_thumb(card_id: str, body: ShareIn, member: dict = Depends(current_member)):
+    import base64
+    card = await db.saved_cards.find_one({"id": card_id, "user_id": member["user_id"]}, {"_id": 0, "id": 1})
+    if not card:
+        raise HTTPException(404, "Not found")
+    m = re.match(r"^data:image/(jpeg|png);base64,", body.image)
+    if not m:
+        raise HTTPException(400, "Preview must be a JPEG or PNG image")
+    try:
+        raw = base64.b64decode(body.image[m.end():], validate=True)
+    except ValueError:
+        raise HTTPException(400, "Invalid image")
+    ctype = f"image/{m.group(1)}"
+    try:
+        res = put_object(f"{APP_PREFIX}/thumbs/{member['user_id']}/{card_id}-{new_id()[:8]}.{'jpg' if m.group(1) == 'jpeg' else 'png'}", raw, ctype)
+    except requests.RequestException:
+        raise HTTPException(502, "Could not store the card preview. Try again.")
+    at = iso()
+    await db.saved_cards.update_one({"id": card_id}, {"$set": {"thumb": {"path": res["path"], "type": ctype, "at": at}}})
+    return {"thumb_at": at}
+
+
+@api.get("/me/cards/{card_id}/thumb")
+async def get_card_thumb(card_id: str, member: dict = Depends(current_member)):
+    card = await db.saved_cards.find_one({"id": card_id, "user_id": member["user_id"]}, {"_id": 0, "thumb": 1})
+    if not card or not card.get("thumb"):
+        raise HTTPException(404, "No preview for this card")
+    try:
+        data, _ = get_object(card["thumb"]["path"])
+    except requests.RequestException:
+        raise HTTPException(502, "Could not load the card preview")
+    return Response(content=data, media_type=card["thumb"]["type"], headers={"Cache-Control": "private, max-age=86400"})
 
 
 @api.post("/me/cards/{card_id}/share")
@@ -1472,6 +1507,17 @@ class TemplateIn(BaseModel):
     watermark_free: bool = True
     active: bool = True
     order: int = 100
+    design: dict = Field(default_factory=dict)
+
+    @field_validator("design")
+    @classmethod
+    def design_ok(cls, v):
+        if len(json.dumps(v)) > 60000:
+            raise ValueError("Template design is too large")
+        bg = v.get("bg_image") or ""
+        if bg and not bg.startswith(("/api/files/", "https://")):
+            raise ValueError("Background image must be an uploaded image")
+        return v
 
     @field_validator("layout")
     @classmethod
@@ -1629,6 +1675,15 @@ IMAGE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "i
 
 @api.post("/uploads/image")
 async def upload_image(file: UploadFile = File(...), member: dict = Depends(blog_writer)):
+    return await _store_image(file, member, "blog")
+
+
+@api.post("/admin/uploads/image")
+async def admin_upload_image(file: UploadFile = File(...), member: dict = Depends(require_perm("templates.manage"))):
+    return await _store_image(file, member, "templates")
+
+
+async def _store_image(file: UploadFile, member: dict, kind: str) -> dict:
     ext = IMAGE_TYPES.get(file.content_type or "")
     if not ext:
         raise HTTPException(400, "Upload a JPG, PNG, WebP or GIF image.")
@@ -1636,11 +1691,11 @@ async def upload_image(file: UploadFile = File(...), member: dict = Depends(blog
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(400, "Image must be 5 MB or smaller.")
     try:
-        res = put_object(f"{APP_PREFIX}/blog/{member['user_id']}/{new_id()}.{ext}", data, file.content_type)
+        res = put_object(f"{APP_PREFIX}/{kind}/{member['user_id']}/{new_id()}.{ext}", data, file.content_type)
     except requests.RequestException:
         raise HTTPException(502, "Upload failed. Try again.")
     await db.files.insert_one({"id": new_id(), "storage_path": res["path"], "content_type": file.content_type, "public": True,
-                               "owner_id": member["user_id"], "kind": "blog", "original_filename": file.filename, "size": len(data),
+                               "owner_id": member["user_id"], "kind": kind, "original_filename": file.filename, "size": len(data),
                                "is_deleted": False, "created_at": iso()})
     return {"url": f"/api/files/{res['path']}"}
 

@@ -19,7 +19,7 @@ export function StadiumHero({ mine }) {
             <Link to="/explore" data-testid="hero-explore-designs-button" className="inline-flex items-center h-12 px-7 rounded-full border-2 border-white/30 bg-[#06080D]/40 font-poster font-black uppercase text-lg tracking-wide hover:border-white hover:bg-white/10 transition-colors">
               Explore designs</Link>
           </div>
-          <p className="mt-6 text-xs text-slate-300">Free account · 2 card downloads a month · Photos stay on your device</p>
+          <p className="mt-6 text-xs text-slate-300">Free account · 2 card downloads a month · Photos stay private to you</p>
           {mine && (
             <button type="button" onClick={() => { const el = document.getElementById("templates"); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.35, behavior: "smooth" }); }} data-testid="hero-your-card-note"
               className="mt-5 inline-flex items-center gap-2 sticker sticker-cyan text-sm">

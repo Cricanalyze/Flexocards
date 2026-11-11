@@ -3,7 +3,7 @@ COLLECTIONS = ["free", "basic", "pro", "premium", "exclusive"]
 COLLECTION_PLANS = {"free": PLAN_IDS, "basic": ["basic", "pro", "team"], "pro": ["pro", "team"],
                     "premium": ["pro", "team"], "exclusive": ["team"]}
 LAYOUTS = ["classic_athlete", "black_gold_elite", "legendary_edition", "neon_energy", "rookie_card",
-           "mvp_edition", "minimal_professional", "esports_pro"]
+           "mvp_edition", "minimal_professional", "esports_pro", "custom"]
 
 # (id, name, badge, layout, collection, accent, description, recommended)
 _T = [

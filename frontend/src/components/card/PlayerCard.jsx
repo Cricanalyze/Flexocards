@@ -1,16 +1,17 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { LAYOUTS, STORY_BG, statsOf } from "./layouts";
+import { CustomLayout } from "./CustomLayout";
 import { CARD_W, CARD_H, STORY_H } from "@/lib/cardUtils";
 
 const H = "'Barlow Condensed', 'DM Sans', sans-serif";
 const M = "'JetBrains Mono', ui-monospace, monospace";
 
 export const PlayerCard = forwardRef(({ template, sport, data, photo, watermark = false }, ref) => {
-  const Layout = LAYOUTS[template?.layout] || LAYOUTS.classic_athlete;
+  const Layout = template?.layout === "custom" ? CustomLayout : LAYOUTS[template?.layout] || LAYOUTS.classic_athlete;
   const a = data.accent || template?.accent || "#D4AF37";
   return (
     <div ref={ref} style={{ position: "relative", width: CARD_W, height: CARD_H, fontFamily: "'DM Sans', sans-serif" }}>
-      <Layout d={data} sport={sport} photo={photo} a={a} stats={statsOf(sport, data)} wm={watermark} />
+      <Layout d={data} sport={sport} photo={photo} a={a} stats={statsOf(sport, data)} wm={watermark} tpl={template} />
       {template?.frame_image && <img src={template.frame_image} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />}
     </div>
   );
@@ -20,7 +21,7 @@ export const StoryCard = forwardRef(({ template, sport, data, photo, watermark =
   const a = data.accent || template?.accent || "#D4AF37";
   const scale = 0.84;
   return (
-    <div ref={ref} style={{ position: "relative", width: CARD_W, height: STORY_H, overflow: "hidden", background: STORY_BG[template?.layout] || "#0B0F17", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
+    <div ref={ref} style={{ position: "relative", width: CARD_W, height: STORY_H, overflow: "hidden", background: STORY_BG[template?.layout] || template?.design?.bg_color || "#0B0F17", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(circle at 50% 52%,${a}30,transparent 60%)` }} />
       <div style={{ position: "absolute", top: 30, left: 24, right: 24, textAlign: "center" }}>
         <div style={{ fontFamily: M, fontSize: 9, letterSpacing: 4, color: a, textTransform: "uppercase" }}>{sport?.name}{data.show.season && data.season ? ` · ${data.season}` : ""}</div>
