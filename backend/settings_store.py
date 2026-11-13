@@ -28,7 +28,7 @@ def env_defaults(section: str) -> dict:
                 "wm_price": 5, "wm_bundle_qty": 5, "wm_bundle_price": 19, "storybook_price": 29, "storybook_bundle_price": 69, "ref_enabled": True, "ref_reward_cards": 2, "ref_max_rewards": 50}
     if section == "invoice":
         return {"legal_name": "Buddy Innovations and Technologies Private Limited", "gstin": "", "address": "", "state": "", "state_code": "",
-                "gst_rate": 18, "inclusive": True, "sac": "998439", "prefix": "FC", "email": "", "phone": ""}
+                "gst_enabled": False, "gst_rate": 18, "inclusive": True, "sac": "998439", "prefix": "FC", "email": "", "phone": ""}
     if section == "site":
         return {"cs_enabled": False, "cs_launch_at": "", "cs_title": "Something big is coming", "cs_message": "FlexoCards is getting ready to launch. Stay tuned!",
                 "cs_auto_open": True, "mt_enabled": False, "mt_start_at": "", "mt_duration_min": 60,

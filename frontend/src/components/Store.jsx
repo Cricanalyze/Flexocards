@@ -17,6 +17,8 @@ export function CheckoutOptions({ extras, setExtras }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [gst, setGst] = useState(false);
+  const [gstOn, setGstOn] = useState(false);
+  useEffect(() => { axios.get(`${API}/billing/config`).then((r) => setGstOn(!!r.data.gst)).catch(() => {}); }, []);
   const apply = async () => {
     if (!code.trim()) { setExtras({ ...extras, coupon: "" }); setMsg(""); return; }
     setBusy(true);
@@ -40,7 +42,7 @@ export function CheckoutOptions({ extras, setExtras }) {
             <Button variant="outline" onClick={apply} disabled={busy} data-testid="coupon-apply-button">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}</Button></div>
           {msg && <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1" data-testid="coupon-message"><Check className="w-3 h-3" />{msg}</p>}
         </div>
-        <div className="rounded-2xl border border-border p-4">
+        {gstOn ? <div className="rounded-2xl border border-border p-4">
           <button onClick={() => setGst(!gst)} className="text-sm font-semibold flex items-center gap-2" data-testid="gst-toggle"><Receipt className="w-4 h-4 text-amber-500" />Need a GST invoice? Add business details</button>
           {gst && (
             <div className="grid sm:grid-cols-3 gap-2 mt-3" data-testid="gst-fields">
@@ -52,7 +54,7 @@ export function CheckoutOptions({ extras, setExtras }) {
             </div>
           )}
           {!gst && <p className="text-xs text-muted-foreground mt-2">Every payment comes with an invoice in your dashboard.</p>}
-        </div>
+        </div> : <p className="text-xs text-muted-foreground flex items-center gap-2 px-1" data-testid="invoice-note"><Receipt className="w-4 h-4 text-amber-500" />Every payment comes with an invoice by email and in your dashboard.</p>}
       </div>
     </Show>
   );

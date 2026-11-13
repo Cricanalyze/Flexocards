@@ -68,7 +68,7 @@ def invoice_pdf(inv: dict) -> bytes:
     y += 6
     pdf.set_text_color(100, 116, 139)
     t(15, y, f"Payment ID: {inv.get('payment_id') or '-'} - Status: {inv['status']}")
-    if not s.get("gstin"):
-        t(15, y + 5, "This is a payment receipt. A GST tax invoice is issued once the seller's GSTIN is registered.")
+    if not inv.get("gst"):
+        t(15, y + 5, "GST not applicable on this invoice.")
     t(15, 285, "This is a computer-generated document and does not need a signature.")
     return bytes(pdf.output())

@@ -505,6 +505,7 @@ def rzp(method: str, path: str, **kw):
 async def billing_config():
     kid, sec = rzp_keys()
     return {"enabled": bool(kid and sec), "key_id": kid if kid and sec else "", "webhooks": bool(settings_store.get("razorpay")["webhook_secret"]),
+            "gst": gst_on(settings_store.get("invoice")),
             "mode": "test" if kid.startswith("rzp_test_") else "live" if kid else "not_configured"}
 
 
@@ -551,9 +552,13 @@ def _aware(v: str):
     return d.replace(tzinfo=timezone.utc) if d and d.tzinfo is None else d
 
 
+def gst_on(inv: dict) -> bool:
+    return bool(inv.get("gst_enabled") and inv["gstin"])
+
+
 def add_tax(amount: float) -> float:
     inv = settings_store.get("invoice")
-    return round(amount * (1 + float(inv["gst_rate"]) / 100), 2) if inv["gstin"] and not inv["inclusive"] else amount
+    return round(amount * (1 + float(inv["gst_rate"]) / 100), 2) if gst_on(inv) and not inv["inclusive"] else amount
 
 
 async def apply_coupon(code: str, body: CheckoutIn, amount: float, member: dict) -> dict:
@@ -2379,31 +2384,35 @@ class InvoiceIn(BaseModel):
     prefix: str = Field(pattern=r"^[A-Z0-9]{1,8}$")
     email: str = Field(default="", max_length=200)
     phone: str = Field(default="", max_length=30)
+    gst_enabled: bool = False
 
 
 @admin.put("/settings/invoice")
 async def admin_set_invoice(body: InvoiceIn, member: dict = Depends(require_perm("settings.manage"))):
+    if body.gst_enabled and not body.gstin:
+        raise HTTPException(400, "Add your GSTIN before publishing GST invoices.")
     await settings_store.save(cfg_db, "invoice", body.model_dump(), member["user_id"], iso())
-    await audit(member, "settings.invoice_updated", "invoice", {"gstin": body.gstin, "rate": body.gst_rate})
+    await audit(member, "settings.invoice_updated", "invoice", {"gstin": body.gstin, "rate": body.gst_rate, "gst_enabled": body.gst_enabled})
     return settings_store.get("invoice")
 
 
 def build_invoice(pay: dict) -> dict:
     inv = settings_store.get("invoice")
+    gst = gst_on(inv)
     total = float(pay["amount_inr"])
-    rate = float(inv["gst_rate"]) if inv["gstin"] else 0.0
+    rate = float(inv["gst_rate"]) if gst else 0.0
     taxable = round(total / (1 + rate / 100), 2)  # amount_inr is what was charged, tax included either way
     tax = round(total - taxable, 2)
     grand = round(taxable + tax, 2)
     b = pay.get("billing") or {}
     intra = not b.get("state") or not inv["state"] or b["state"].strip().lower() == inv["state"].strip().lower()
-    lines = [{"desc": pay.get("item_label") or f"{pay['plan_name']} plan", "sac": inv["sac"], "qty": 1, "list_price": pay.get("list_price_inr", total),
+    lines = [{"desc": pay.get("item_label") or f"{pay['plan_name']} plan", "sac": inv["sac"] if gst else "", "qty": 1, "list_price": pay.get("list_price_inr", total),
               "discount": pay.get("discount_inr", 0), "taxable": taxable}]
     taxes = ([{"name": f"CGST {rate / 2:g}%", "amount": round(tax / 2, 2)}, {"name": f"SGST {rate / 2:g}%", "amount": round(tax - round(tax / 2, 2), 2)}]
              if intra else [{"name": f"IGST {rate:g}%", "amount": tax}]) if rate else []
-    return {"title": "Tax Invoice" if inv["gstin"] else "Payment Receipt", "number": pay.get("invoice_no"), "date": pay.get("paid_at"),
-            "seller": {k: inv[k] for k in ("legal_name", "gstin", "address", "state", "state_code", "email", "phone")},
-            "buyer": {"name": b.get("name") or pay.get("user_email", ""), "gstin": b.get("gstin", ""), "state": b.get("state", ""), "email": pay.get("user_email", "")},
+    return {"title": "Tax Invoice" if gst else "Invoice", "gst": gst, "number": pay.get("invoice_no"), "date": pay.get("paid_at"),
+            "seller": {**{k: inv[k] for k in ("legal_name", "address", "state", "state_code", "email", "phone")}, "gstin": inv["gstin"] if gst else ""},
+            "buyer": {"name": b.get("name") or pay.get("user_email", ""), "gstin": b.get("gstin", "") if gst else "", "state": b.get("state", ""), "email": pay.get("user_email", "")},
             "lines": lines, "taxes": taxes, "taxable": taxable, "tax": tax, "total": grand, "coupon": pay.get("coupon"),
             "payment_id": pay.get("razorpay_payment_id"), "status": pay["status"]}
 

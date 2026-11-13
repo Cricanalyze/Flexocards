@@ -51,14 +51,21 @@ export function InvoiceSettings({ data, onSaved }) {
   const [f, setF] = useState(data);
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e?.target ? (k === "gstin" || k === "prefix" ? e.target.value.toUpperCase() : e.target.value) : e });
-  const save = async () => {
+  const save = async (patch = {}) => {
     setBusy(true);
-    try { onSaved(await api("put", "/admin/settings/invoice", { ...f, gst_rate: Number(f.gst_rate) })); toast.success("Invoice details saved"); }
+    try { const r = await api("put", "/admin/settings/invoice", { ...f, ...patch, gst_rate: Number(f.gst_rate) }); setF(r); onSaved(r); toast.success(patch.gst_enabled === undefined ? "Invoice details saved" : patch.gst_enabled ? "GST invoices published" : "GST invoices unpublished — plain invoices without GST"); }
     catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
   return (
     <section className="rounded-xl border border-border p-5 space-y-4" data-testid="settings-invoice">
-      <div className="flex gap-3"><Receipt className="w-5 h-5 text-amber-500 mt-0.5" /><div><p className="font-semibold">GST invoices</p><p className="text-xs text-muted-foreground">Every paid order gets a numbered invoice. Add your GSTIN to issue GST tax invoices with CGST/SGST or IGST.</p></div></div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex gap-3"><Receipt className="w-5 h-5 text-amber-500 mt-0.5" /><div><p className="font-semibold">Invoices & GST</p><p className="text-xs text-muted-foreground max-w-xl">Every paid order gets a numbered invoice by email and in the dashboard. While GST is unpublished, invoices show no GSTIN and no GST. Publish once you're GST registered to issue tax invoices with CGST/SGST or IGST.</p></div></div>
+        <div className="flex items-center gap-3">
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${data.gst_enabled ? "bg-emerald-500/15 text-emerald-500" : "bg-muted text-muted-foreground"}`} data-testid="gst-status">{data.gst_enabled ? "GST published" : "GST unpublished"}</span>
+          <Button size="sm" variant={data.gst_enabled ? "outline" : "default"} disabled={busy} onClick={() => save({ gst_enabled: !data.gst_enabled })} data-testid="gst-publish-toggle-button">
+            {data.gst_enabled ? "Unpublish GST invoices" : "Publish GST invoices"}</Button>
+        </div>
+      </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <F label="Legal name"><Input value={f.legal_name} onChange={set("legal_name")} data-testid="inv-legal-name" /></F>
         <F label="GSTIN"><Input value={f.gstin} onChange={set("gstin")} maxLength={15} placeholder="Leave blank if not registered" data-testid="inv-gstin" /></F>
@@ -72,7 +79,7 @@ export function InvoiceSettings({ data, onSaved }) {
         <F label="Phone"><Input value={f.phone} onChange={set("phone")} data-testid="inv-phone" /></F>
         <F label="Prices include GST"><Switch checked={f.inclusive} onCheckedChange={set("inclusive")} data-testid="inv-inclusive" /></F>
       </div>
-      <Button onClick={save} disabled={busy} data-testid="invoice-save-button">{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Save invoice details</Button>
+      <Button onClick={() => save()} disabled={busy} data-testid="invoice-save-button">{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Save invoice details</Button>
     </section>
   );
 }

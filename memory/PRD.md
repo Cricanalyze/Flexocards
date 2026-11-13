@@ -36,6 +36,8 @@ Follow-up requests: rebrand to **FlexoCards** (Buddy Innovations and Technologie
 - Known: old preview/background files are not deleted from storage (no delete API).
 - Every captured payment (plan, pack, watermark, storybook) emails a receipt with invoice no + PDF attachment (notify_paid, invoice_pdf.py via fpdf2; SMTP attachments).
 - Clerk replaced by own auth (own_auth.py): email 6-digit code (10 min, 5 tries, rate limits), Google OAuth with owner's GOOGLE_CLIENT_ID/SECRET (button shows once keys set), opaque httpOnly cookie fc_session (30 days, db.sessions). Existing users matched by email. Frontend: lib/auth.jsx (AuthProvider/useAuth/Show), components/auth/UserButton.jsx, pages/SignIn.jsx. Test iteration_2: backend 39/40 (XFF spoof fixed), frontend 100%.
+- Welcome email rewritten (3-step guide, plan details, sign-in methods); sent once to every new account (email code or Google).
+- GST publish/unpublish toggle (invoice.gst_enabled, default off; needs GSTIN to publish). Off = plain "Invoice", no GSTIN/SAC/tax, buyer GST fields hidden at checkout (billing/config.gst).
 - Pending: Google OAuth credentials from owner — now entered in Admin › Settings › Google sign-in (encrypted, settings_store "google"; env GOOGLE_* only used if a valid client id). Step-by-step guide + copyable origin/redirect URI shown there.
 
 ## Backlog

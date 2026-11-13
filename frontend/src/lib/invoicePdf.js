@@ -34,7 +34,7 @@ export function downloadInvoicePdf(inv) {
   pdf.setFontSize(12); row("Total paid", money(inv.total), true); pdf.setFontSize(9);
   y += 6; pdf.setTextColor(100, 116, 139);
   pdf.text(`Payment ID: ${inv.payment_id || "-"} · Status: ${inv.status}`, 15, y);
-  if (!s.gstin) pdf.text("This is a payment receipt. A GST tax invoice is issued once the seller's GSTIN is registered.", 15, y + 5);
+  if (!inv.gst) pdf.text("GST not applicable on this invoice.", 15, y + 5);
   pdf.text("This is a computer-generated document and does not need a signature.", 15, 285);
   pdf.save(`${inv.number}.pdf`);
 }

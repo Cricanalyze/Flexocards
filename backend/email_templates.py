@@ -5,11 +5,12 @@ def _t(subject, heading, paras, cta=None, details=None, eyebrow="", code=""):
     return {"subject": subject, "heading": heading, "paras": paras, "cta": cta, "details": details, "eyebrow": eyebrow, "code": code}
 
 
-def welcome(name: str):
-    return _t("Welcome to FlexoCards", f"Welcome, {name or 'player'}!",
-              ["Your FlexoCards account is ready. Pick your sport, add a photo and stats, and make a player card that looks like you belong on the big stage.",
-               "Your Free plan includes 2 card downloads or shares every month. Credits reset on the 1st."],
-              ("Create my first card", "/create"), [("Plan", "Free"), ("Cards per month", 2), ("Sports", "60+")], "Account created")
+def welcome(name: str, cards: int = 2):
+    return _t("Welcome to FlexoCards — let's make your first card", f"Welcome to the squad, {name or 'player'}!",
+              ["Your FlexoCards account is ready. Here's how to get your first pro-style player card in under 2 minutes:",
+               "1. Pick your sport and a card template.  2. Add your photo, name and best stats.  3. Download it or share it straight to Instagram and WhatsApp.",
+               f"Your Free plan includes {cards} card downloads or shares every month, and credits reset on the 1st. Sign in any time with a code sent to this email."],
+              ("Create my first card", "/create"), [("Plan", "Free"), ("Cards per month", cards), ("Sports", "60+"), ("Sign-in", "Email code or Google")], "Account created")
 
 
 def receipt(plan: str, cycle: str, amount, cards, end: str, payment_id: str):
