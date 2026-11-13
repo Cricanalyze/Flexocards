@@ -10,7 +10,7 @@ export const COMPANY = "Buddy Innovations and Technologies Private Limited";
 const cols = [
   { title: "Product", links: [["Create Card", "/create"], ["Explore Designs", "/explore"], ["Pricing", "/pricing"], ["Blog", "/blog"]] },
   { title: "Support", links: [["Help & FAQ", "/help"], ["Contact", "/help#contact"], ["My Cards", "/dashboard"]] },
-  { title: "Legal", links: [["Privacy Policy", "/privacy"], ["Terms of Use", "/terms"]] },
+  { title: "Legal", links: [["Privacy Policy", "/privacy"], ["Terms & Conditions", "/terms"]] },
 ];
 
 export default function Footer() {
