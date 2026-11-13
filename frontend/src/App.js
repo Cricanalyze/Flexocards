@@ -35,6 +35,7 @@ import SignInPage from "@/pages/SignIn";
 import { AppDataProvider } from "@/context/AppData";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/layout/Header";
+import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import Footer from "@/components/layout/Footer";
 import Home from "@/pages/Home";
 import Create from "@/pages/Create";
@@ -64,6 +65,7 @@ const ScrollTop = () => {
 
 const PublicShell = () => (
   <div className="min-h-screen flex flex-col">
+    <AnnouncementBar />
     <Header />
     <main className="flex-1"><Outlet /></main>
     <Footer />

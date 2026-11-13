@@ -2095,6 +2095,50 @@ async def site_social():
     return {k: v for k, v in settings_store.get("social").items() if v}
 
 
+class AnnouncementIn(BaseModel):
+    text: str = Field(min_length=3, max_length=180)
+    link_url: str = Field(default="", max_length=300, pattern=r"^(|/[^\s]*|https://[^\s]+)$")
+    link_label: str = Field(default="", max_length=30)
+    tone: str = Field(default="amber", pattern=r"^(amber|cyan|green|red)$")
+    active: bool = True
+    order: int = 100
+
+
+@api.get("/site/announcements")
+async def site_announcements():
+    return await db.announcements.find({"active": True}, NOFIELDS).sort([("order", 1), ("created_at", -1)]).to_list(5)
+
+
+@admin.get("/announcements")
+async def admin_announcements(member: dict = Depends(require_perm("settings.manage"))):
+    return await db.announcements.find({}, NOFIELDS).sort([("order", 1), ("created_at", -1)]).to_list(50)
+
+
+@admin.post("/announcements")
+async def admin_add_announcement(body: AnnouncementIn, member: dict = Depends(require_perm("settings.manage"))):
+    doc = {"id": new_id(), **body.model_dump(), "created_at": iso(), "updated_at": iso()}
+    await db.announcements.insert_one(doc)
+    await audit(member, "announcement.created", doc["id"], {"text": body.text})
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@admin.put("/announcements/{aid}")
+async def admin_edit_announcement(aid: str, body: AnnouncementIn, member: dict = Depends(require_perm("settings.manage"))):
+    r = await db.announcements.find_one_and_update({"id": aid}, {"$set": {**body.model_dump(), "updated_at": iso()}}, projection=NOFIELDS, return_document=True)
+    if not r:
+        raise HTTPException(404, "Announcement not found")
+    await audit(member, "announcement.updated", aid, {"active": body.active})
+    return r
+
+
+@admin.delete("/announcements/{aid}")
+async def admin_delete_announcement(aid: str, member: dict = Depends(require_perm("settings.manage"))):
+    if not (await db.announcements.delete_one({"id": aid})).deleted_count:
+        raise HTTPException(404, "Announcement not found")
+    await audit(member, "announcement.deleted", aid)
+    return {"ok": True}
+
+
 @api.post("/clerk/webhook")
 async def clerk_webhook(request: Request):
     import base64

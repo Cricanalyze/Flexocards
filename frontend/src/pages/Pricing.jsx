@@ -11,7 +11,7 @@ const TERMS = [
   ["Card credits", "Each PNG download or share uses 1 credit. Credits reset on the 1st of every month, including on yearly plans. Unused credits don't roll over."],
   ["Changing plans", "Buying a different plan replaces your current paid plan straight away. Renewing the same plan adds time to your expiry date."],
   ["Expiry", "When a plan expires you drop back to Free. Your saved cards are kept and public links turn off. The Storybook add-on runs on its own 30-day timer."],
-  ["Refunds", "Refunds follow applicable law and Razorpay rules. A refunded payment ends the plan it paid for."],
+  ["Refunds", "All purchases are final — no cancellation or refund is given once a payment is completed. Every payment comes with an invoice."],
   ["Price changes", "New prices apply to future purchases only."],
 ];
 

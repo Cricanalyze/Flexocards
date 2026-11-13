@@ -9,6 +9,7 @@ import { useApi, errMsg, fmtDateTime } from "@/lib/api";
 import { PageHead } from "./AdminApp";
 import { TemplatesPreview, SocialSettings } from "./SettingsExtra";
 import { GoogleSignInSettings } from "./GoogleSettings";
+import { AnnouncementsSettings } from "./AnnouncementsSettings";
 import { SiteModeSettings } from "./SiteMode";
 import { DatabaseSettings } from "./DatabaseSettings";
 import { StoreSettings, InvoiceSettings } from "./StoreSettings";
@@ -145,6 +146,7 @@ export default function Settings() {
       <RazorpaySettings key={`r${v}`} data={d.razorpay} onSaved={(r) => setD({ ...d, razorpay: r })} onReset={() => reset("razorpay")} />
       <EmailSettings key={`e${v}`} data={d.email} onSaved={(r) => (r ? setD({ ...d, email: r }) : load())} onReset={() => reset("email")} />
       <GoogleSignInSettings key={`g${v}`} data={d.google} onSaved={(r) => setD({ ...d, google: r })} onReset={() => reset("google")} />
+      <AnnouncementsSettings />
       <TemplatesPreview templates={d.templates} />
       <SocialSettings key={`s${v}`} data={d.social} onSaved={(r) => setD({ ...d, social: r })} />
       <EmailLog rows={d.email_log} />
