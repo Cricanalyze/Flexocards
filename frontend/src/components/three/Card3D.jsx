@@ -38,7 +38,7 @@ export function useCardImages(indices, extra = []) {
         try {
           const el = refs.current[it.i];
           if (!el || off) continue;
-          const u = await toJpeg(el, { pixelRatio: 1, quality: 0.85, backgroundColor: "#0B0F17" });
+          const u = await toJpeg(el, { pixelRatio: 2, quality: 0.9, backgroundColor: "#0B0F17" });
           try { sessionStorage.setItem(cacheKey(it), u); } catch { /* storage full */ }
           if (!off) setUrls((m) => ({ ...m, [it.i]: u }));
         } catch { /* keeps placeholder face */ }

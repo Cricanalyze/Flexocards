@@ -172,15 +172,16 @@ export default function HomeWorld({ mobile, mine }) {
   const mineUrl = mine && (mine.url || cards.find((c) => String(c.i).startsWith("mine-"))?.url);
   const mineDemo = useMemo(() => (mine ? { sport: mine.sport, data: mine.data } : null), [mine]);
   const demoCards = cards.filter((c) => !String(c.i).startsWith("mine-"));
-  const [dpr, setDpr] = useState(mobile ? 1 : 1.3);
+  const hi = Math.min(window.devicePixelRatio || 1, mobile ? 2 : 1.5);
+  const [dpr, setDpr] = useState(hi);
   useEffect(() => { resetIntro(); }, []);
   return (
     <>
       {node}
       <div className="fixed inset-0 -z-10 bg-[#06080D] animate-[fadeIn_.8s_ease]" data-testid="home-3d-world">
         <Canvas dpr={dpr} camera={{ position: [-16, 30, 60], fov: mobile ? 60 : 48, far: 280 }}
-          gl={{ antialias: !mobile, powerPreference: "high-performance", stencil: false }} style={{ pointerEvents: "none" }}>
-          <PerformanceMonitor onDecline={() => setDpr(mobile ? 0.75 : 1)} onIncline={() => setDpr(mobile ? 1 : 1.3)} />
+          gl={{ antialias: true, powerPreference: "high-performance", stencil: false }} style={{ pointerEvents: "none" }}>
+          <PerformanceMonitor onDecline={() => setDpr(Math.max(1, hi * 0.75))} onIncline={() => setDpr(hi)} />
           <color attach="background" args={["#06080D"]} />
           <fog attach="fog" args={["#06080D", 50, 160]} />
           <IntroLights />

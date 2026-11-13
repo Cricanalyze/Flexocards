@@ -127,7 +127,7 @@ export default function StadiumScene({ p, mobile }) {
   return (
     <>
       {node}
-      <Canvas dpr={[1, mobile ? 1 : 1.5]} camera={{ position: [0, 34, 62], fov: mobile ? 62 : 50, far: 260 }} gl={{ antialias: !mobile }}
+      <Canvas dpr={[1, mobile ? 2 : 1.5]} camera={{ position: [0, 34, 62], fov: mobile ? 62 : 50, far: 260 }} gl={{ antialias: true }}
         style={{ touchAction: "pan-y" }} data-testid="stadium-3d-canvas">
         <color attach="background" args={["#06080D"]} />
         <fog attach="fog" args={["#06080D", 45, 150]} />
