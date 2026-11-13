@@ -78,7 +78,7 @@ function Inner() {
           )}
           <p className="eyebrow mt-6">Billing history</p>
           {shownPayments.length === 0 ? <p className="text-sm text-muted-foreground mt-2">No payments yet.</p>
-            : shownPayments.map((p) => <p key={p.id} className="text-sm" data-testid={`my-payment-${p.id}`}>{fmtDate(p.created_at)} · {p.plan_name}{p.kind && p.kind !== "plan" ? "" : ` (${p.cycle === "year" ? "yearly" : "monthly"})`}{p.coupon ? ` · coupon ${p.coupon}` : ""} · {inr(p.amount_inr)} · <b className="uppercase">{{ created: "pending", authorized: "pending", captured: "paid" }[p.status] || p.status}</b>{p.invoice_no && <button onClick={() => invoice(p)} className="ml-2 text-amber-500 hover:underline" data-testid={`invoice-${p.id}`}>Invoice</button>}</p>)}
+            : shownPayments.map((p) => <p key={p.id} className="text-sm" data-testid={`my-payment-${p.id}`}>{fmtDate(p.created_at)} · {p.kind && p.kind !== "plan" ? p.item_label || p.plan_name : p.plan_name}{p.kind && p.kind !== "plan" ? "" : ` (${p.cycle === "year" ? "yearly" : "monthly"})`}{p.coupon ? ` · coupon ${p.coupon}` : ""} · {inr(p.amount_inr)} · <b className="uppercase">{{ created: "pending", authorized: "pending", captured: "paid" }[p.status] || p.status}</b>{p.invoice_no && <button onClick={() => invoice(p)} className="ml-2 text-amber-500 hover:underline" data-testid={`invoice-${p.id}`}>Invoice</button>}</p>)}
         </div>
       </div>
 
@@ -115,7 +115,7 @@ function Inner() {
 
       <div className="rounded-2xl border border-destructive/40 p-6">
         <p className="font-semibold">Delete my data</p>
-        <p className="text-sm text-muted-foreground mt-1">Removes your saved cards and closes your FlexoCards profile. To remove your login too, use “Manage account” in the profile menu.</p>
+        <p className="text-sm text-muted-foreground mt-1">Removes your saved cards and closes your FlexoCards profile.</p>
         <AlertDialog>
           <AlertDialogTrigger asChild><Button variant="destructive" className="mt-4 rounded-full" data-testid="delete-my-data-button">Delete my data</Button></AlertDialogTrigger>
           <AlertDialogContent>

@@ -101,7 +101,7 @@ _hits: dict = {}
 
 
 def rate_limit(request: Request, bucket: str, limit: int, window: int = 60):
-    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[0].strip()
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[-1].strip()
     key, t = f"{bucket}:{ip}", time.time()
     arr = [x for x in _hits.get(key, []) if t - x < window]
     if len(arr) >= limit:
@@ -264,7 +264,7 @@ async def migrate_catalog():
 
 @app.on_event("startup")
 async def startup():
-    bind_auth(lambda: db, _send_login_code)
+    bind_auth(lambda: db, _send_login_code, lambda: settings_store.get("google"))
     await settings_store.load_all(cfg_db)
     dbc = settings_store.get("database")
     if dbc["enabled"] and dbc["url"]:
@@ -1931,7 +1931,7 @@ def _email_view() -> dict:
 async def admin_settings(member: dict = Depends(require_perm("settings.manage"))):
     logs = await db.email_log.find({}, NOFIELDS).sort("created_at", -1).limit(15).to_list(15)
     return {"store": settings_store.get("store"), "invoice": settings_store.get("invoice"),
-            "razorpay": _rzp_view(), "email": _email_view(), "email_log": logs, "clerk": _clerk_view(), "database": await _db_view(), "site": settings_store.get("site"), "site_status": site_status(),
+            "razorpay": _rzp_view(), "email": _email_view(), "email_log": logs, "clerk": _clerk_view(), "google": _google_view(), "database": await _db_view(), "site": settings_store.get("site"), "site_status": site_status(),
             "social": settings_store.get("social"), "templates": [{"id": k, "label": v[0]} for k, v in ET.SAMPLES.items()]}
 
 
@@ -1986,11 +1986,11 @@ async def admin_set_email(body: EmailSettingsIn, member: dict = Depends(require_
 
 @admin.delete("/settings/{section}")
 async def admin_reset_settings(section: str, member: dict = Depends(require_perm("settings.manage"))):
-    if section not in ("razorpay", "email", "clerk", "social"):
+    if section not in ("razorpay", "email", "clerk", "social", "google"):
         raise HTTPException(404, "Unknown settings section")
     await settings_store.reset(cfg_db, section)
     await audit(member, f"settings.{section}_reset", section)
-    return {"razorpay": _rzp_view(), "email": _email_view(), "clerk": _clerk_view(), "social": settings_store.get("social")}
+    return {"razorpay": _rzp_view(), "email": _email_view(), "clerk": _clerk_view(), "google": _google_view(), "social": settings_store.get("social")}
 
 
 @admin.post("/settings/email/test")
@@ -2040,6 +2040,27 @@ async def admin_set_clerk(body: ClerkSettingsIn, member: dict = Depends(require_
     await settings_store.save(cfg_db, "clerk", {"webhook_secret": body.webhook_secret.strip()}, member["user_id"], iso())
     await audit(member, "settings.clerk_updated", "clerk")
     return _clerk_view()
+
+
+def _google_view() -> dict:
+    g = settings_store.get("google")
+    return {"client_id": g["client_id"], "client_secret_hint": settings_store.hint(g["client_secret"]),
+            "connected": bool(g["client_id"] and g["client_secret"]), "saved_in_admin": bool(settings_store.saved_keys("google"))}
+
+
+class GoogleSettingsIn(BaseModel):
+    client_id: str = Field(pattern=r"^\s*[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com\s*$")
+    client_secret: str = Field(default="", max_length=200)
+
+
+@admin.put("/settings/google")
+async def admin_set_google(body: GoogleSettingsIn, member: dict = Depends(require_perm("settings.manage"))):
+    sec = body.client_secret.strip()
+    if not sec and not settings_store.get("google")["client_secret"]:
+        raise HTTPException(400, "Paste the Client secret from Google Cloud")
+    await settings_store.save(cfg_db, "google", {"client_id": body.client_id.strip(), "client_secret": sec or None}, member["user_id"], iso())
+    await audit(member, "settings.google_updated", "google")
+    return _google_view()
 
 
 SOCIAL_URL = r"^$|^https://[^\s]{4,300}$"
@@ -2545,7 +2566,7 @@ async def site_gate(request: Request, call_next):
 app.include_router(api)
 app.include_router(admin)
 app.include_router(auth_router)
-app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+app.add_middleware(CORSMiddleware, allow_credentials=False, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
                    allow_methods=["*"], allow_headers=["*"])
 
 

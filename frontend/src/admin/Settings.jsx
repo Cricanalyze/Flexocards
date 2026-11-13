@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useApi, errMsg, fmtDateTime } from "@/lib/api";
 import { PageHead } from "./AdminApp";
-import { ClerkEmails, TemplatesPreview, SocialSettings } from "./SettingsExtra";
+import { TemplatesPreview, SocialSettings } from "./SettingsExtra";
+import { GoogleSignInSettings } from "./GoogleSettings";
 import { SiteModeSettings } from "./SiteMode";
 import { DatabaseSettings } from "./DatabaseSettings";
 import { StoreSettings, InvoiceSettings } from "./StoreSettings";
@@ -143,7 +144,7 @@ export default function Settings() {
       <InvoiceSettings key={`iv${v}`} data={d.invoice} onSaved={(r) => setD({ ...d, invoice: r })} />
       <RazorpaySettings key={`r${v}`} data={d.razorpay} onSaved={(r) => setD({ ...d, razorpay: r })} onReset={() => reset("razorpay")} />
       <EmailSettings key={`e${v}`} data={d.email} onSaved={(r) => (r ? setD({ ...d, email: r }) : load())} onReset={() => reset("email")} />
-      <ClerkEmails key={`c${v}`} data={d.clerk} onSaved={(r) => setD({ ...d, clerk: r })} onReset={() => reset("clerk")} />
+      <GoogleSignInSettings key={`g${v}`} data={d.google} onSaved={(r) => setD({ ...d, google: r })} onReset={() => reset("google")} />
       <TemplatesPreview templates={d.templates} />
       <SocialSettings key={`s${v}`} data={d.social} onSaved={(r) => setD({ ...d, social: r })} />
       <EmailLog rows={d.email_log} />

@@ -10,11 +10,12 @@ from PIL import Image
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/")
 API = f"{BASE_URL}/api"
-TOKENS = json.load(open("/tmp/toks.json"))
+import subprocess, sys
+TOKENS = json.loads(subprocess.check_output([sys.executable, "/app/backend/qa_users.py", "tokens"]).decode().strip().splitlines()[-1])
 
 
 def H(k):
-    return {"Authorization": f"Bearer {TOKENS[k]}"}
+    return {"Cookie": f"fc_session={TOKENS[k]}"}
 
 
 def jpeg_data_url(color=(200, 30, 30), fmt="JPEG"):

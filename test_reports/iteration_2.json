@@ -1,0 +1,48 @@
+{
+  "summary": "Tested the new auth (email code + session cookie, Clerk removed) and invoices for every payment kind, on both backend and frontend, plus regression checks on card thumbnails and the template designer. Backend: 39 of 40 pytest tests pass. The 1 failure is a real security issue: the IP rate limit trusts the client-sent X-Forwarded-For header. Covered: /auth/config (google=false), /auth/google/start returns 503, invalid email returns 422, the per-email limit returns 429 without sending a code, verify with no code or an expired code returns 400, a wrong code returns 400 with 'N tries left' (4..1), the 5th wrong code invalidates the code (the correct code then gets 429), and a correct code sets an fc_session cookie (HttpOnly, Secure). Email is normalised to lowercase. Each code works only once. /auth/session works, logout deletes the session in the DB and clears the cookie, then /api/me returns 401. Existing user qa.admin is matched by email (user_ id, super_admin). A new user gets a u_ id. Admin revoke-sessions and suspend both remove sessions, and a suspended user who signs in again gets 403 on /api/me. Invoices: /me/payments/{id}/invoice returns 200 for the owner and 404 for another user, the admin invoice endpoint works, and the PDF builds. I ran notify_paid in-process with the email send captured (nothing sent) for plan, pack, watermark and storybook: all 4 got a 'receipt' email with the invoice number in the details and a PDF attachment. One real OTP was sent to test_otp_send_iter2@example.com (email_log shows sent via smtp). Frontend: signed-out visits to /dashboard and /create redirect to sign-in/sign-up. The Google button is hidden. On /sign-in (otp/request mocked in the browser to avoid sending email): the code step, change email, resend, and wrong-code toast ('4 tries left') work. The correct code redirects to /dashboard, the user menu shows the email, the cookie is httpOnly, and sign out goes to /sign-in with the session cleared. /admin works with the admin cookie. The template list and the design editor (boxes, inspector) render. The Invoice button in the dashboard billing history downloads TEST-2026-UI001.pdf.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/otp/request, /api/auth/otp/verify (own_auth._ip)", "issue": "The IP rate limit uses the first value of X-Forwarded-For, which the client controls. The ingress appends the real IP instead of replacing the header. I sent X-Forwarded-For: 203.0.113.x and the server stored the key otp-ip:203.0.113.x. An attacker can change this header on every request to get past the 10-per-IP limit on code requests and the 30-per-IP limit on verify, for example to spam codes to many addresses through the live SMTP. Fix: use the last value in X-Forwarded-For (the one the ingress adds), or the right-most untrusted hop, or request.client.host.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "CORS (server.py)", "issue": "CORS_ORIGINS='*' is combined with allow_credentials=True. Starlette then echoes back any Origin with credentials allowed. The cookie is SameSite=Lax at the app level, but the preview ingress rewrites it to SameSite=None; Partitioned, so any site could make credentialed API calls in preview. Set explicit origins."},
+      {"endpoint": "POST /api/auth/otp/verify", "issue": "tries is read and then incremented in separate steps (not atomic). Parallel wrong guesses can go past MAX_TRIES. Use find_one_and_update with $inc and check the value it returns."},
+      {"endpoint": "CodeIn email pattern", "issue": "The pattern is checked before trimming, so an email with leading or trailing spaces is rejected with 422. The frontend trims, so this only affects API clients."},
+      {"endpoint": "POST /api/admin/users/{id}/revoke-sessions, PATCH /admin/users/{id}", "issue": "Leftover Clerk code: except requests.RequestException can never trigger now, and the 'Could not reach the auth provider' message no longer applies. /api/clerk/ is still in GATE_OPEN, and revoke_clerk_sessions and the clerk settings view are still there."},
+      {"endpoint": "mailer.send_email", "issue": "If the provider is switched to 'emergent', attachments are silently dropped, so receipts would arrive without the invoice PDF."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard > Delete my data", "issues": ["Copy still says 'use \"Manage account\" in the profile menu' (from Clerk). The new user menu only has My account and Sign out."]},
+      {"screen": "Admin > Settings", "issues": ["The Clerk webhook section ('Sign-in & OTP emails', clerk-webhook-* testids) is still shown even though Clerk was removed."]},
+      {"screen": "Dashboard billing history", "issues": ["The row label uses p.plan_name. For pack, watermark and storybook payments, item_label would read better. A row with a missing plan_name shows 'Nov 11, 2026 · · ₹9'."]},
+      {"screen": "Admin overview", "issues": ["The date range uses the browser's native date input (mm/dd/yyyy) instead of the shadcn calendar."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_own_auth_and_invoices.py", "/app/backend/tests/test_card_thumb_and_designer.py", "/app/backend/tests/probe_notify_paid.py", "/app/test_reports/pytest/pytest_results_iter2.xml"],
+  "action_items": [
+    "Fix own_auth._ip so it does not trust the client-supplied first X-Forwarded-For value (use the right-most hop added by the ingress)",
+    "Set explicit CORS_ORIGINS because credentials are allowed",
+    "Make the OTP tries increment atomic",
+    "Remove leftover Clerk pieces: the Admin Settings Clerk webhook section, /api/clerk/ in GATE_OPEN, the requests.RequestException handlers in revoke and suspend, and the 'Manage account' copy on the Dashboard",
+    "Update /app/memory/test_credentials.md. It still describes Clerk password sign-in. It should describe the OTP flow, qa_users.py tokens, and the fc_session cookie"
+  ],
+  "critical_code_review_comments": [
+    "own_auth._ip trusts a spoofable header (confirmed by test)",
+    "server.py is 2554 lines and should be split",
+    "_user_for matches email exactly. Existing users stored with mixed-case emails will not match and will get a new u_ account. Consider a case-insensitive lookup or normalising stored emails.",
+    "Every qa_users.py tokens run adds 5 sessions (7-day TTL). That is fine, but they pile up while testing.",
+    "Playbook items about bcrypt and seed_admin do not apply: there are no passwords (OTP plus Google only)"
+  ],
+  "updated_files": ["/app/backend/tests/test_own_auth_and_invoices.py (new)", "/app/backend/tests/test_card_thumb_and_designer.py (tokens now come from qa_users.py and are sent as the fc_session cookie)", "/app/backend/tests/probe_notify_paid.py (new)"],
+  "success_rate": {"backend": "97.5% (39/40; 1 failure is a real security issue)", "frontend": "100% of tested flows"},
+  "test_credentials": "/app/memory/test_credentials.md is OUTDATED (describes Clerk password sign-in). Working approach: cd /app/backend && python qa_users.py tokens, then set cookie fc_session=<token> (or send Bearer). For the OTP success path, insert into db.otp_codes {email, code_hash: sha256(f'{email}:{code}'), tries:0, created_at, expires_at}.",
+  "seed_data_creation": "Temporary TEST_ payments, otp codes and test_*@example.com users were created and then deleted by id. Audit log entries for suspending the test users remain.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=... pytest tests/test_own_auth_and_invoices.py tests/test_card_thumb_and_designer.py (xdist is configured in pytest.ini; tokens are generated per worker via qa_users.py). test_email_rate_limit_429_and_ip_spoof_check should pass once the XFF fix is in. The SMTP is live: do not call /auth/otp/request except with @example.com addresses, and mock it in Playwright with page.route. The admin page has 2 user-menu-button elements (mobile one hidden), so use :visible. The preview ingress rewrites the cookie to SameSite=None; Partitioned.",
+  "rca of the issue": "XFF spoofing: _ip() takes headers['x-forwarded-for'].split(',')[0]. The K8s/Cloudflare ingress adds the real client IP to the existing header instead of replacing it, so the first value is whatever the client sent. Reproduce: POST /api/auth/otp/request with header X-Forwarded-For: 203.0.113.9, then check db.auth_rate for key 'otp-ip:203.0.113.9'. Fix: use the right-most hop, or a configured number of trusted proxies."
+}

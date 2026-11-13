@@ -34,6 +34,9 @@ Follow-up requests: rebrand to **FlexoCards** (Buddy Innovations and Technologie
 - Admin template design editor (layout "custom"): drag/resize every element (photo, name, nickname, meta, rating, jersey, stats, sport, season, tagline, achievements, social), fonts (13 local fonts), size, weight, colour, accent toggle, alignment, element backgrounds, background image upload (/api/admin/uploads/image), bg colour/darken, border/radius. Files: admin/TemplateDesigner.jsx, admin/DesignerInspector.jsx, components/card/CustomLayout.jsx, lib/designDefaults.js.
 - Test iteration_1: backend 100%, frontend fixes applied (photo-less re-save, share-link preview, stats box height, cancel no longer switches layout).
 - Known: old preview/background files are not deleted from storage (no delete API).
+- Every captured payment (plan, pack, watermark, storybook) emails a receipt with invoice no + PDF attachment (notify_paid, invoice_pdf.py via fpdf2; SMTP attachments).
+- Clerk replaced by own auth (own_auth.py): email 6-digit code (10 min, 5 tries, rate limits), Google OAuth with owner's GOOGLE_CLIENT_ID/SECRET (button shows once keys set), opaque httpOnly cookie fc_session (30 days, db.sessions). Existing users matched by email. Frontend: lib/auth.jsx (AuthProvider/useAuth/Show), components/auth/UserButton.jsx, pages/SignIn.jsx. Test iteration_2: backend 39/40 (XFF spoof fixed), frontend 100%.
+- Pending: Google OAuth credentials from owner — now entered in Admin › Settings › Google sign-in (encrypted, settings_store "google"; env GOOGLE_* only used if a valid client id). Step-by-step guide + copyable origin/redirect URI shown there.
 
 ## Backlog
 - P0: Auto-renewing plans (Razorpay Subscriptions / UPI Autopay) (3)

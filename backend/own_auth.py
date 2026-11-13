@@ -1,7 +1,7 @@
 """FlexoCards own sign-in: 6-digit email codes + Google OAuth (owner's credentials). Opaque session cookie."""
 import hashlib
 import hmac
-import os
+import re
 import secrets
 import time
 import uuid
@@ -11,7 +11,8 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
+from pymongo import ReturnDocument
+from pydantic import BaseModel, ConfigDict, Field
 
 router = APIRouter(prefix="/api/auth")
 COOKIE = "fc_session"
@@ -21,8 +22,8 @@ MAX_TRIES = 5
 _ctx = {}
 
 
-def bind(get_db, send_code):
-    _ctx.update(get_db=get_db, send_code=send_code)
+def bind(get_db, send_code, get_google):
+    _ctx.update(get_db=get_db, send_code=send_code, get_google=get_google)
 
 
 def _db():
@@ -42,7 +43,7 @@ def _norm(email: str) -> str:
 
 
 def _ip(request: Request) -> str:
-    return (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[0].strip()
+    return (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")).split(",")[-1].strip()
 
 
 def _origin(request: Request) -> str:
@@ -65,7 +66,7 @@ async def _rate(key: str, limit: int, window: int):
 
 async def _user_for(email: str, name: str = "") -> dict:
     db = _db()
-    u = await db.users.find_one({"email": email, "status": {"$ne": "deleted"}}, {"_id": 0, "user_id": 1}, sort=[("created_at", 1)])
+    u = await db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}, "status": {"$ne": "deleted"}}, {"_id": 0, "user_id": 1}, sort=[("created_at", 1)])
     if u:
         return {"user_id": u["user_id"], "new": False}
     uid = "u_" + uuid.uuid4().hex
@@ -117,7 +118,8 @@ async def prepare_indexes():
 
 
 def _google():
-    return os.environ.get("GOOGLE_CLIENT_ID", ""), os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    g = _ctx["get_google"]()
+    return g["client_id"].strip(), g["client_secret"].strip()
 
 
 @router.get("/config")
@@ -127,6 +129,7 @@ async def auth_config():
 
 
 class CodeIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     email: str = Field(min_length=5, max_length=200, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -161,12 +164,12 @@ async def otp_verify(body: VerifyIn, request: Request, response: Response):
         exp = exp.replace(tzinfo=timezone.utc)
     if not rec or exp < _now():
         raise HTTPException(400, "This code has expired. Ask for a new one.")
-    if rec["tries"] >= MAX_TRIES:
+    rec = await db.otp_codes.find_one_and_update({"email": email}, {"$inc": {"tries": 1}}, projection={"_id": 0}, return_document=ReturnDocument.AFTER)
+    if not rec or rec["tries"] > MAX_TRIES:
         await db.otp_codes.delete_many({"email": email})
         raise HTTPException(429, "Too many wrong codes. Ask for a new one.")
     if not hmac.compare_digest(rec["code_hash"], _h(f"{email}:{body.code}")):
-        await db.otp_codes.update_one({"email": email}, {"$inc": {"tries": 1}})
-        left = MAX_TRIES - rec["tries"] - 1
+        left = MAX_TRIES - rec["tries"]
         raise HTTPException(400, f"That code isn't right. {left} {'try' if left == 1 else 'tries'} left." if left else "Too many wrong codes. Ask for a new one.")
     await db.otp_codes.delete_many({"email": email})
     u = await _start_session(response, request, email, "", "email")
