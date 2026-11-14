@@ -102,11 +102,67 @@ _EXTRA = {"prizm_silver": {"overlay": 0.3}, "gold_prizm": {"overlay": 0.3}, "sup
           "hardwood": {"overlay": 0.3}, "clay_court": {"overlay": 0.2}, "ice_rink": {"overlay": 0.35}, "black_finite": {"frame": True}}
 
 
+_MORE = [  # id(=bg file), name, badge, archetype, collection, accent, font, description
+    ("goal_net", "Back of the Net", "GOAL", "hero", "free", "#F8FAFC", "Anton", "The net bulges under the floodlights."),
+    ("corner_flag", "Corner Flag", "SET PIECE", "split", "free", "#EF4444", "Oswald", "Corner flag at golden hour on a striped pitch."),
+    ("rain_pitch", "Rain Match", "WET", "poster", "free", "#38BDF8", "Bebas Neue", "Floodlit pitch in heavy rain."),
+    ("tunnel", "Tunnel Walk", "WALKOUT", "arch", "free", "#E2E8F0", "Big Shoulders Display", "The players' tunnel leading out to the lights."),
+    ("flares", "Ultras", "DERBY", "hero", "free", "#F97316", "Teko", "Red flare smoke filling the stands."),
+    ("bat_ball", "Willow & Leather", "CRICKET", "medal", "free", "#DC2626", "Oswald", "Willow bat and red ball on the outfield."),
+    ("stumps", "Clean Bowled", "WICKET", "poster", "free", "#FACC15", "Anton", "Stumps exploding, bails flying."),
+    ("cricket_day", "Test Match", "WHITES", "arch", "free", "#16A34A", "Big Shoulders Display", "Sunny ground, sight screen and green outfield."),
+    ("pink_ball", "Pink Ball", "DAY-NIGHT", "hero", "free", "#EC4899", "Bebas Neue", "Glowing pink ball under dusk floodlights."),
+    ("hoop", "Swish", "HOOPS", "split", "free", "#F97316", "Russo One", "Ball through the net under arena lights."),
+    ("streetball", "Streetball", "PLAYGROUND", "poster", "free", "#FB923C", "Anton", "Chain-link court at sunset."),
+    ("grass_court", "Grass Court", "TENNIS", "medal", "free", "#4ADE80", "Oswald", "Striped grass court in summer light."),
+    ("blocks", "On Your Marks", "SPRINT", "split", "free", "#3B82F6", "Teko", "Starting blocks on a blue track."),
+    ("pool", "Lane Four", "SWIM", "medal", "free", "#22D3EE", "Big Shoulders Display", "Underwater lane lines and caustics."),
+    ("kabaddi", "Kabaddi Mat", "RAID", "hero", "free", "#60A5FA", "Teko", "Blue mat court under arena lights."),
+    ("table_tennis", "Table Tennis", "TT", "arch", "free", "#F97316", "Oswald", "Blue table, net and orange ball."),
+    ("shuttle", "Shuttle", "BADMINTON", "poster", "free", "#A3E635", "Bebas Neue", "Shuttlecock on a green indoor court."),
+    ("volley_indoor", "Spike", "VOLLEY", "split", "free", "#FB923C", "Russo One", "Glossy court and net shadow."),
+    ("ball_leather", "Pebble Grain", "LEATHER", "arch", "basic", "#F97316", "Anton", "Macro basketball leather and seams."),
+    ("blue_court", "Night Session", "HARD COURT", "hero", "basic", "#38BDF8", "Oswald", "Blue hard court under night lights."),
+    ("racket", "Sweet Spot", "STRINGS", "medal", "basic", "#D9F99D", "Big Shoulders Display", "Racket strings and a fluorescent ball."),
+    ("baseball", "Stitches", "BASEBALL", "poster", "basic", "#DC2626", "Anton", "Baseball stitching in the dirt."),
+    ("diamond", "Infield", "DIAMOND", "arch", "basic", "#FBBF24", "Oswald", "Raked infield and chalk lines at dusk."),
+    ("laces", "Laces Out", "GRIDIRON", "split", "basic", "#B45309", "Russo One", "Football leather and white laces."),
+    ("yard_lines", "Red Zone", "YARD LINE", "hero", "basic", "#E2E8F0", "Big Shoulders Display", "Turf yard lines from above."),
+    ("hockey", "Face-Off", "HOCKEY", "medal", "basic", "#93C5FD", "Teko", "Crossed sticks and a puck on ice."),
+    ("golf_green", "The Green", "GOLF", "arch", "basic", "#22C55E", "Oswald", "Flagstick on a dewy green at sunrise."),
+    ("kerbs", "Apex", "RACING", "split", "basic", "#EF4444", "Russo One", "Red-white kerbs and tyre marks."),
+    ("rugby", "Mud & Glory", "RUGBY", "poster", "basic", "#A16207", "Anton", "Muddy ball on torn wet grass."),
+    ("field_hockey", "Astro Turf", "FIELD HOCKEY", "hero", "basic", "#60A5FA", "Bebas Neue", "Blue turf, white lines and ball."),
+    ("golf_ball", "Tee Off", "DIMPLES", "medal", "pro", "#F8FAFC", "Big Shoulders Display", "Macro golf ball on a tee."),
+    ("checkered", "Chequered Flag", "FINISH", "poster", "pro", "#F8FAFC", "Russo One", "The chequered flag waves at night."),
+    ("velodrome", "Velodrome", "TRACK CYCLING", "split", "pro", "#F59E0B", "Teko", "Banked wooden track under lights."),
+    ("beach_volley", "Beach Volley", "SAND", "hero", "pro", "#FB923C", "Bebas Neue", "Net and ball on golden sand at sunset."),
+    ("gloves", "Gloves Up", "BOXING", "arch", "pro", "#DC2626", "Anton", "Red gloves hanging in a dark gym."),
+    ("ski", "Fresh Powder", "SKI", "medal", "pro", "#7DD3FC", "Oswald", "Carved tracks and powder spray."),
+    ("skatepark", "Bowl Session", "SKATE", "split", "pro", "#FB923C", "Russo One", "Concrete bowl at sunset."),
+    ("gym", "Iron Paradise", "STRENGTH", "poster", "pro", "#E2E8F0", "Big Shoulders Display", "Dumbbells and chalk dust in a spotlight."),
+    ("rgb_setup", "RGB Setup", "ESPORTS", "split", "pro", "#A855F7", "Russo One", "Glowing keyboard and mouse in the dark."),
+    ("esports_stage", "Main Stage", "LAN FINAL", "hero", "pro", "#E879F9", "Teko", "Esports arena stage, lasers and haze."),
+    ("gridiron_night", "Prime Time", "GAME NIGHT", "arch", "pro", "#F59E0B", "Anton", "Football under a single spotlight."),
+    ("grandstand", "Grandstand", "SOLD OUT", "medal", "pro", "#EF4444", "Oswald", "Rows of red seats at dusk."),
+    ("orange_ref", "Orange Refractor", "ORANGE /25", "poster", "premium", "#FB923C", "Anton", "Orange chrome prism refractor."),
+    ("purple_mojo", "Purple Mojo", "MOJO /35", "arch", "premium", "#C084FC", "Bebas Neue", "Purple mojo swirl refractor."),
+    ("pink_ice", "Pink Ice", "ICE /15", "medal", "premium", "#F472B6", "Big Shoulders Display", "Pink cracked-ice refractor."),
+    ("teal_wave", "Teal Wave", "TEAL /75", "split", "premium", "#2DD4BF", "Russo One", "Teal wave refractor."),
+    ("cracked_ice", "Cracked Ice", "ICE 1/1", "hero", "premium", "#E2E8F0", "Anton", "Rainbow cracked-ice foil."),
+    ("bronze", "Bronze Shimmer", "BRONZE /5", "poster", "exclusive", "#D97706", "Big Shoulders Display", "Bronze shimmer scales."),
+    ("camo", "Camo Refractor", "CAMO /10", "arch", "exclusive", "#84CC16", "Anton", "Camouflage chrome refractor."),
+    ("wrestling", "Main Event", "WRESTLING", "hero", "exclusive", "#F43F5E", "Teko", "Ring canvas under a smoky spotlight."),
+]
+_EXTRA.update({k: {"overlay": 0.3} for k in ("orange_ref", "purple_mojo", "pink_ice", "teal_wave", "cracked_ice", "bronze", "camo", "ski", "golf_ball", "racket", "cricket_day", "grass_court")})
+
+
 def build(COLLECTION_PLANS):
+    rows = [(*r, _BG.get(r[0], r[0])) for r in _D] + [(*r, r[0]) for r in _MORE]
     out = []
-    for k, (tid, name, badge, arch, coll, accent, font, desc) in enumerate(_D):
+    for k, (tid, name, badge, arch, coll, accent, font, desc, bg) in enumerate(rows):
         d = ARCH[arch](font, 400 if font in SINGLE_WEIGHT else 900)
-        d.update({"bg_image": f"/templates/{_BG.get(tid, tid)}.jpg", "bg_color": "#05070D", "radius": 16, "border_width": 0, **_EXTRA.get(tid, {})})
+        d.update({"bg_image": f"/templates/{bg}.jpg", "bg_color": "#05070D", "radius": 16, "border_width": 0, **_EXTRA.get(tid, {})})
         out.append({"id": tid, "name": name, "badge": badge, "layout": "custom", "collection": coll, "tier": coll, "accent": accent,
                     "description": desc, "recommended": [], "plans": COLLECTION_PLANS[coll], "sports": [], "watermark_free": True,
                     "frame_image": "", "active": True, "order": k, "design": d})

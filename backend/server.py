@@ -206,7 +206,9 @@ async def get_entitlements(member: Optional[dict]) -> dict:
     sb_until = wallet.get("storybook_until") or ""
     sb_active = bool(sb_until) and _aware(sb_until) > now()
     cards_used, bg_used = used.get("cards", 0), used.get("bg_removals", 0)
+    ai_limit = int(e.get("ai_photo_limit", AI_PHOTO_LIMITS.get(plan["id"], 0)))
     return {
+        "ai_photo_limit": ai_limit, "ai_photos_used": used.get("ai_photos", 0), "ai_photos_remaining": max(0, ai_limit - used.get("ai_photos", 0)),
         "plan_id": plan["id"], "plan_name": plan["name"], "plan_ids": [plan["id"]],
         "subscription": sub and {k: sub.get(k) for k in ("id", "status", "source", "cycle", "start_at", "end_at")},
         "sources": [{"plan": plan["name"], "source": sub["source"], "end_at": sub.get("end_at")}] if sub else [],
@@ -237,7 +239,7 @@ async def consume(member: dict, kind: str, request_id: str, limit: int, extra: d
         return {"duplicate": True}
     await db.usage.update_one({"user_id": member["user_id"], "period": period},
                               {"$setOnInsert": {"cards": 0, "bg_removals": 0, "created_at": iso()}}, upsert=True)
-    r = await db.usage.find_one_and_update({"user_id": member["user_id"], "period": period, kind: {"$lt": limit}},
+    r = await db.usage.find_one_and_update({"user_id": member["user_id"], "period": period, "$or": [{kind: {"$lt": limit}}, {kind: {"$exists": False}}]} if limit > 0 else {"_id": None},
                                            {"$inc": {kind: 1}, "$set": {"updated_at": iso()}})
     if r is None:
         await db.usage_events.delete_one({"key": key})
@@ -303,11 +305,11 @@ async def storybook_reminder_loop():
 
 async def prepare_db():
     await auth_indexes()
-    if not await db.meta.find_one({"id": "templates_v5"}):
+    if not await db.meta.find_one({"id": "templates_v6"}):
         await db.templates.delete_many({"id": {"$nin": [t["id"] for t in TEMPLATES]}})
         for t in TEMPLATES:
             await db.templates.replace_one({"id": t["id"]}, t, upsert=True)
-        await db.meta.insert_one({"id": "templates_v5", "at": iso()})
+        await db.meta.insert_one({"id": "templates_v6", "at": iso()})
     for old, new in RETIRED_ROLES.items():
         await db.users.update_many({"role": old}, {"$set": {"role": new}})
     await migrate_catalog()
@@ -437,6 +439,56 @@ async def use_wallet(member: dict, field: str, key: str) -> dict:
         await db.usage_events.delete_one({"key": f"{member['user_id']}:{key}"})
         return {"denied": True}
     return {"ok": True}
+
+
+AI_PHOTO_LIMITS = {"basic": 10, "pro": 30, "team": 100}
+AI_STYLES = {
+    "illustrated": "a premium illustrated sports trading card artwork, clean bold linework, cel shading, vivid colours",
+    "comic": "a dynamic comic book sports illustration with bold ink outlines, halftone shading and punchy colours",
+    "painted": "a dramatic hand-painted oil portrait in the style of official sports poster art, rich brush strokes",
+    "neon": "a striking neon-glow sports art illustration with glowing rim light outlines on a dark background",
+    "vector": "a flat vector sports poster illustration with simplified shapes and a limited bold colour palette",
+    "sketch": "a detailed pencil and ink sketch sports illustration with subtle colour accents",
+}
+
+
+class AiPhotoIn(BaseModel):
+    request_id: str = Field(pattern=r"^[A-Za-z0-9_-]{8,64}$")
+    image: str = Field(max_length=8_000_000)
+    style: str = Field(pattern=r"^(illustrated|comic|painted|neon|vector|sketch)$")
+
+
+@api.post("/tools/ai-photo")
+async def ai_photo(body: AiPhotoIn, member: dict = Depends(current_member)):
+    import base64
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+    ent = await get_entitlements(member)
+    if not ent["ai_photo_limit"]:
+        upgrade_error("AI photo art is included in Basic, Pro and Team.", "ai_photo")
+    m = re.match(r"^data:image/(jpeg|png|webp);base64,", body.image)
+    if not m:
+        raise HTTPException(400, "Upload a JPG, PNG or WebP photo first")
+    r = await consume(member, "ai_photos", body.request_id, ent["ai_photo_limit"], {"style": body.style})
+    if r.get("denied"):
+        upgrade_error(f"You've used all {ent['ai_photo_limit']} AI photo redraws this month.", "ai_limit")
+    period, _ = period_of()
+    try:
+        chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"aiphoto-{new_id()}", system_message="You create sports card artwork.")
+        chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+        prompt = (f"Redraw the athlete in this photo as {AI_STYLES[body.style]}. Keep the same person, face, pose, framing and sport clothing, "
+                  "but turn it into original artwork (not a photo). Remove any brand logos, team crests, sponsor marks and text. "
+                  "Portrait orientation, the athlete fills the frame, simple dark background. No text, no watermark.")
+        _, images = await chat.send_message_multimodal_response(UserMessage(text=prompt, file_contents=[ImageContent(body.image[m.end():])]))
+        if not images:
+            raise ValueError("no image returned")
+    except Exception as e:
+        logger.error("ai photo failed for %s: %s", member["user_id"], str(e)[:200])
+        await db.usage_events.delete_one({"key": f"{member['user_id']}:ai_photos:{body.request_id}"})
+        await db.usage.update_one({"user_id": member["user_id"], "period": period, "ai_photos": {"$gt": 0}}, {"$inc": {"ai_photos": -1}})
+        raise HTTPException(502, "The AI couldn't redraw this photo. Try another photo or style — no credit was used.")
+    img = images[0]
+    ent = await get_entitlements(member)
+    return {"image": f"data:{img.get('mime_type', 'image/png')};base64,{img['data']}", "remaining": ent["ai_photos_remaining"]}
 
 
 class ToolIn(BaseModel):

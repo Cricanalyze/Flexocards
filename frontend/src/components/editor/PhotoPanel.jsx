@@ -9,6 +9,7 @@ import { ACCENTS, MAX_MB, processPhoto, blankPhoto, BG_PRESETS, EFFECTS } from "
 import { removeBackground } from "@/lib/bgRemoval";
 import { useApi, errMsg, newRequestId } from "@/lib/api";
 import { useAppData } from "@/context/AppData";
+import { AiPhotoSection } from "./AiPhotoSection";
 
 const upgradeToast = (msg) => toast.error(msg, { action: { label: "See plans", onClick: () => window.location.assign("/pricing") } });
 
@@ -158,8 +159,9 @@ export const PhotoPanel = ({ photo, setPhoto, ent }) => {
         {photo.src && <Button variant="outline" className="rounded-full" onClick={() => setPhoto(blankPhoto)} data-testid="photo-remove-button"><Trash2 className="w-4 h-4 mr-1" /> Remove</Button>}
         {photo.src && <Button variant="ghost" className="rounded-full" onClick={() => setPhoto({ ...photo, zoom: 1, x: 0, y: 0, rotate: 0 })} data-testid="photo-reset-position-button">Reset position</Button>}
       </div>
-      <p className="text-xs text-muted-foreground">JPG, PNG or WebP up to {MAX_MB} MB. Your photo is processed on this device only and is never uploaded. Only use photos you have permission to use.</p>
+      <p className="text-xs text-muted-foreground">JPG, PNG or WebP up to {MAX_MB} MB. Your photo is processed on this device only and is never uploaded, unless you choose AI photo art. Only use photos you have permission to use.</p>
       {photo.src && <Adjust photo={photo} setPhoto={setPhoto} />}
+      {photo.src && <AiPhotoSection photo={photo} setPhoto={setPhoto} ent={ent} />}
       {photo.src && <Effects photo={photo} setPhoto={setPhoto} ent={ent} />}
       {photo.src && <BackgroundSection photo={photo} setPhoto={setPhoto} ent={ent} />}
     </div>
