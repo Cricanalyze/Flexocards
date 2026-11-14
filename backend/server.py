@@ -310,6 +310,10 @@ async def prepare_db():
         for t in TEMPLATES:
             await db.templates.replace_one({"id": t["id"]}, t, upsert=True)
         await db.meta.insert_one({"id": "templates_v6", "at": iso()})
+    if not await db.meta.find_one({"id": "backgrounds_v2"}):
+        for b in BACKGROUNDS:
+            await db.backgrounds.update_one({"id": b["id"]}, {"$set": {"name": b["name"], "value": b["value"]}})
+        await db.meta.insert_one({"id": "backgrounds_v2", "at": iso()})
     for old, new in RETIRED_ROLES.items():
         await db.users.update_many({"role": old}, {"$set": {"role": new}})
     await migrate_catalog()

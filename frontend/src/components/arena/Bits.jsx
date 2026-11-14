@@ -1,6 +1,6 @@
 import { useAppData } from "@/context/AppData";
 
-export const STADIUM_IMG = "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?crop=entropy&cs=srgb&fm=jpg&w=1800&q=70";
+export const STADIUM_IMG = "/demo/stadium.jpg";
 
 export const Lights = ({ pitch = true }) => (
   <>

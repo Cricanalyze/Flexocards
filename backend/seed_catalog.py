@@ -77,13 +77,13 @@ for p in PLANS:
 
 _PX = "?auto=compress&cs=tinysrgb&w=900"
 BACKGROUNDS = [
-    {"id": "lib_stadium_night", "name": "Stadium night", "tier": "library", "type": "image", "value": "https://images.pexels.com/photos/14963646/pexels-photo-14963646.jpeg" + _PX},
-    {"id": "lib_floodlights", "name": "Floodlights", "tier": "library", "type": "image", "value": "https://images.pexels.com/photos/15779126/pexels-photo-15779126.jpeg" + _PX},
-    {"id": "lib_storm", "name": "Storm sky", "tier": "library", "type": "image", "value": "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=900&q=80"},
-    {"id": "lib_stars", "name": "Star dust", "tier": "library", "type": "image", "value": "https://images.pexels.com/photos/9667550/pexels-photo-9667550.jpeg" + _PX},
-    {"id": "pre_teal_streaks", "name": "Teal streaks", "tier": "premium", "type": "image", "value": "https://images.pexels.com/photos/23823961/pexels-photo-23823961.jpeg" + _PX},
-    {"id": "pre_shadow_forest", "name": "Shadow light", "tier": "premium", "type": "image", "value": "https://images.pexels.com/photos/23824371/pexels-photo-23824371.jpeg" + _PX},
-    {"id": "pre_dark_ripple", "name": "Dark ripple", "tier": "premium", "type": "image", "value": "https://images.pexels.com/photos/7505924/pexels-photo-7505924.jpeg" + _PX},
+    {"id": "lib_stadium_night", "name": "Stadium night", "tier": "library", "type": "image", "value": "/templates/stadium.jpg"},
+    {"id": "lib_floodlights", "name": "Grandstand", "tier": "library", "type": "image", "value": "/templates/grandstand.jpg"},
+    {"id": "lib_storm", "name": "Rain match", "tier": "library", "type": "image", "value": "/templates/rain_pitch.jpg"},
+    {"id": "lib_stars", "name": "Main stage", "tier": "library", "type": "image", "value": "/templates/esports_stage.jpg"},
+    {"id": "pre_teal_streaks", "name": "Teal wave", "tier": "premium", "type": "image", "value": "/templates/teal_wave.jpg"},
+    {"id": "pre_shadow_forest", "name": "Tunnel walk", "tier": "premium", "type": "image", "value": "/templates/tunnel.jpg"},
+    {"id": "pre_dark_ripple", "name": "Black finite", "tier": "premium", "type": "image", "value": "/templates/black_gold.jpg"},
     {"id": "pre_gold_burst", "name": "Gold burst", "tier": "premium", "type": "gradient", "value": "radial-gradient(circle at 50% 30%,#FFF7D6,#D4AF37 35%,#3B2A05 75%,#000)"},
     {"id": "team_home", "name": "Home kit", "tier": "team", "type": "gradient", "value": "linear-gradient(135deg,#1E3A8A 0 50%,#F59E0B 50% 100%)"},
     {"id": "team_away", "name": "Away kit", "tier": "team", "type": "gradient", "value": "linear-gradient(135deg,#F8FAFC 0 50%,#E11D48 50% 100%)"},
