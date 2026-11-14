@@ -4,6 +4,7 @@ import { KeyRound, Loader2, RotateCcw, CheckCircle2, AlertTriangle, Copy, Extern
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useApi, errMsg } from "@/lib/api";
 import { Section } from "./SettingsExtra";
 
@@ -44,6 +45,33 @@ function Guide({ origin }) {
   );
 }
 
+function ModeControls({ data, onSaved }) {
+  const api = useApi();
+  const [busy, setBusy] = useState(false);
+  const setMode = async (patch) => {
+    setBusy(true);
+    try { onSaved(await api("put", "/admin/settings/google-mode", { enabled: data.enabled, provider: data.provider, ...patch })); toast.success("Google sign-in updated"); }
+    catch (err) { toast.error(errMsg(err)); } finally { setBusy(false); }
+  };
+  const Opt = ({ id, title, sub }) => (
+    <button type="button" disabled={busy} onClick={() => setMode({ provider: id })} data-testid={`google-provider-${id}`}
+      className={`text-left rounded-xl border p-3 transition-colors ${data.provider === id ? "border-amber-500 bg-amber-500/10" : "border-border hover:bg-accent"}`}>
+      <p className="text-sm font-semibold flex items-center gap-2"><span className={`w-3 h-3 rounded-full border-2 ${data.provider === id ? "border-amber-500 bg-amber-500" : "border-muted-foreground"}`} />{title}</p>
+      <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+    </button>
+  );
+  return (
+    <div className="space-y-3">
+      <label className="flex items-center gap-3 text-sm font-semibold"><Switch checked={data.enabled} disabled={busy} onCheckedChange={(enabled) => setMode({ enabled })} data-testid="google-enabled-switch" />
+        Show "Continue with Google" on the sign-in page</label>
+      {data.enabled && <div className="grid sm:grid-cols-2 gap-3">
+        <Opt id="emergent" title="Emergent managed (default)" sub="Works instantly, nothing to set up. Google's screen shows Emergent as the app." />
+        <Opt id="own" title="My own Google keys" sub={data.has_keys ? "Google's screen shows FlexoCards. Uses the keys saved below." : "Google's screen shows FlexoCards. Save your keys below first."} />
+      </div>}
+    </div>
+  );
+}
+
 export function GoogleSignInSettings({ data, onSaved, onReset }) {
   const api = useApi();
   const origin = window.location.origin;
@@ -51,15 +79,20 @@ export function GoogleSignInSettings({ data, onSaved, onReset }) {
   const [busy, setBusy] = useState(false);
   const save = async (e) => {
     e.preventDefault(); setBusy(true);
-    try { onSaved(await api("put", "/admin/settings/google", f)); setF((s) => ({ ...s, client_secret: "" })); toast.success("Google sign-in is on"); }
+    try { onSaved(await api("put", "/admin/settings/google", f)); setF((s) => ({ ...s, client_secret: "" })); toast.success("Your Google keys are saved and in use"); }
     catch (err) { toast.error(errMsg(err, "Check the Client ID — it ends with .apps.googleusercontent.com")); } finally { setBusy(false); }
   };
+  const clearKeys = async () => {
+    try { onSaved(await api("delete", "/admin/settings/google/keys")); setF({ client_id: "", client_secret: "" }); toast.success("Keys removed"); } catch (err) { toast.error(errMsg(err)); }
+  };
+  const status = !data.enabled ? "Off. Only email-code sign-in is shown." : data.provider === "emergent" ? "On — using Emergent managed Google sign-in." : data.connected ? `On — using your own Google keys (secret ${data.client_secret_hint}).` : "Your own keys are selected but not saved yet.";
   return (
     <Section icon={KeyRound} title="Google sign-in" testId="settings-google"
       sub="Let people sign in with their Google account. Email-code sign-in always stays on.">
       <p className={`text-sm flex items-center gap-2 ${data.connected ? "text-emerald-500" : "text-amber-500"}`} data-testid="google-status">
-        {data.connected ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-        {data.connected ? `Connected (secret ${data.client_secret_hint}). The Google button is live.` : "Not connected. The Google button is hidden until you add your keys."}</p>
+        {data.connected ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}{status}</p>
+      <ModeControls data={data} onSaved={onSaved} />
+      {data.enabled && data.provider === "own" && <>
       <div className="grid sm:grid-cols-2 gap-4">
         <CopyRow label="Authorised JavaScript origin" value={origin} id="origin" />
         <CopyRow label="Authorised redirect URI" value={`${origin}/api/auth/google/callback`} id="redirect-uri" />
@@ -70,9 +103,10 @@ export function GoogleSignInSettings({ data, onSaved, onReset }) {
         <div className="space-y-1.5 min-w-0"><Label>Client secret</Label><Input type="password" autoComplete="new-password" value={f.client_secret} onChange={(e) => setF({ ...f, client_secret: e.target.value })} placeholder={data.connected ? "Leave empty to keep the saved secret" : "GOCSPX-…"} className="font-mono text-xs" data-testid="google-client-secret-input" /></div>
         <div className="sm:col-span-2 flex flex-wrap gap-2">
           <Button type="submit" disabled={busy} data-testid="google-save-button">{busy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Save Google keys</Button>
-          {data.saved_in_admin && <Button type="button" variant="ghost" onClick={onReset} data-testid="google-disconnect-button"><RotateCcw className="w-4 h-4 mr-1" />Remove saved keys</Button>}
+          {data.saved_in_admin && <Button type="button" variant="ghost" onClick={clearKeys} data-testid="google-disconnect-button"><RotateCcw className="w-4 h-4 mr-1" />Remove saved keys</Button>}
         </div>
       </form>
+      </>}
     </Section>
   );
 }

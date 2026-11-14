@@ -122,10 +122,42 @@ def _google():
     return g["client_id"].strip(), g["client_secret"].strip()
 
 
+def _google_mode():
+    g = _ctx["get_google"]()
+    if not g["enabled"]:
+        return None
+    if g["provider"] == "own":
+        cid, sec = _google()
+        return "own" if cid and sec else None
+    return "emergent"
+
+
 @router.get("/config")
 async def auth_config():
-    cid, sec = _google()
-    return {"google": bool(cid and sec), "code_minutes": CODE_MINUTES}
+    return {"google": _google_mode(), "code_minutes": CODE_MINUTES}
+
+
+class EmergentIn(BaseModel):
+    session_id: str = Field(min_length=8, max_length=300)
+
+
+@router.post("/emergent/session")
+async def emergent_session(body: EmergentIn, request: Request, response: Response):
+    if _google_mode() != "emergent":
+        raise HTTPException(403, "Google sign-in is turned off.")
+    await _rate(f"emergent-ip:{_ip(request)}", 20, 600)
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data", headers={"X-Session-ID": body.session_id})
+            r.raise_for_status()
+            info = r.json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(401, "Google sign-in didn't work. Please try again.")
+    email = _norm(info.get("email"))
+    if not email:
+        raise HTTPException(401, "Google didn't share an email address.")
+    u = await _start_session(response, request, email, info.get("name", ""), "google")
+    return {"ok": True, "new": u["new"]}
 
 
 class CodeIn(BaseModel):
@@ -196,9 +228,9 @@ async def session(request: Request):
 
 @router.get("/google/start")
 async def google_start(request: Request, next: str = "/"):
-    cid, sec = _google()
-    if not (cid and sec):
+    if _google_mode() != "own":
         raise HTTPException(503, "Google sign-in is not set up yet.")
+    cid, sec = _google()
     state = secrets.token_urlsafe(24)
     params = {"client_id": cid, "redirect_uri": f"{_origin(request)}/api/auth/google/callback", "response_type": "code",
               "scope": "openid email profile", "state": state, "prompt": "select_account"}

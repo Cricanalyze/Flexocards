@@ -13,7 +13,11 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     try { await axios.post(`${API}/auth/logout`, {}, { withCredentials: true }); } finally { setSession({ signed_in: false }); }
   }, []);
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    // Emergent Google callback (#session_id=) creates the session first; AuthHashGate refreshes afterwards.
+    if (window.location.hash.includes("session_id=")) return;
+    refresh();
+  }, [refresh]);
   const value = { isLoaded: !!session, isSignedIn: !!session?.signed_in, user: session?.signed_in ? session : null, refresh, signOut, getToken: async () => null };
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

@@ -36,6 +36,7 @@ import { AppDataProvider } from "@/context/AppData";
 import { Toaster } from "@/components/ui/sonner";
 import Header from "@/components/layout/Header";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
+import { AuthHashGate } from "@/components/auth/AuthHashGate";
 import Footer from "@/components/layout/Footer";
 import Home from "@/pages/Home";
 import Create from "@/pages/Create";
@@ -93,6 +94,7 @@ function App() {
             <ScreenGuard />
             <ReferralCapture />
             <SiteGate>
+            <AuthHashGate>
             <Routes>
               <Route element={<PublicShell />}>
                 <Route path="/" element={<Home />} />
@@ -116,6 +118,7 @@ function App() {
               <Route path="/admin/*" element={<AdminApp />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </AuthHashGate>
             </SiteGate>
             <Toaster richColors position="top-center" />
             </SiteStatusProvider>

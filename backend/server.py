@@ -2049,8 +2049,33 @@ async def admin_set_clerk(body: ClerkSettingsIn, member: dict = Depends(require_
 
 def _google_view() -> dict:
     g = settings_store.get("google")
-    return {"client_id": g["client_id"], "client_secret_hint": settings_store.hint(g["client_secret"]),
-            "connected": bool(g["client_id"] and g["client_secret"]), "saved_in_admin": bool(settings_store.saved_keys("google"))}
+    keys = bool(g["client_id"] and g["client_secret"])
+    return {"client_id": g["client_id"], "client_secret_hint": settings_store.hint(g["client_secret"]), "has_keys": keys,
+            "enabled": bool(g["enabled"]), "provider": g["provider"],
+            "connected": bool(g["enabled"]) and (g["provider"] == "emergent" or keys),
+            "saved_in_admin": bool(settings_store.saved_keys("google") & {"client_id", "client_secret"})}
+
+
+class GoogleModeIn(BaseModel):
+    enabled: bool
+    provider: str = Field(pattern=r"^(emergent|own)$")
+
+
+@admin.put("/settings/google-mode")
+async def admin_set_google_mode(body: GoogleModeIn, member: dict = Depends(require_perm("settings.manage"))):
+    await settings_store.save(cfg_db, "google", body.model_dump(), member["user_id"], iso())
+    await audit(member, "settings.google_mode", "google", body.model_dump())
+    return _google_view()
+
+
+@admin.delete("/settings/google/keys")
+async def admin_clear_google_keys(member: dict = Depends(require_perm("settings.manage"))):
+    patch = {"client_id": "", "client_secret": ""}
+    if settings_store.get("google")["provider"] == "own":
+        patch["provider"] = "emergent"
+    await settings_store.save(cfg_db, "google", patch, member["user_id"], iso())
+    await audit(member, "settings.google_keys_removed", "google")
+    return _google_view()
 
 
 class GoogleSettingsIn(BaseModel):
@@ -2063,7 +2088,7 @@ async def admin_set_google(body: GoogleSettingsIn, member: dict = Depends(requir
     sec = body.client_secret.strip()
     if not sec and not settings_store.get("google")["client_secret"]:
         raise HTTPException(400, "Paste the Client secret from Google Cloud")
-    await settings_store.save(cfg_db, "google", {"client_id": body.client_id.strip(), "client_secret": sec or None}, member["user_id"], iso())
+    await settings_store.save(cfg_db, "google", {"client_id": body.client_id.strip(), "client_secret": sec or None, "provider": "own", "enabled": True}, member["user_id"], iso())
     await audit(member, "settings.google_updated", "google")
     return _google_view()
 

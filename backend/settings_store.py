@@ -18,7 +18,7 @@ def env_defaults(section: str) -> dict:
     if section == "google":
         cid = e("GOOGLE_CLIENT_ID", "").strip()
         ok = cid.endswith(".apps.googleusercontent.com")
-        return {"client_id": cid if ok else "", "client_secret": e("GOOGLE_CLIENT_SECRET", "") if ok else ""}
+        return {"client_id": cid if ok else "", "client_secret": e("GOOGLE_CLIENT_SECRET", "") if ok else "", "enabled": True, "provider": "emergent"}
     if section == "social":
         return {k: "" for k in SOCIAL_KEYS}
     if section == "database":

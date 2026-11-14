@@ -55,7 +55,9 @@ export default function SignInPage({ mode = "sign-in" }) {
         <div className="mt-7 space-y-4">
           {google && (<>
             <Button asChild variant="outline" className="w-full h-12 rounded-full font-semibold" data-testid="google-sign-in-button">
-              <a href={`${API}/auth/google/start?next=${encodeURIComponent(next)}`}><GoogleIcon /><span className="ml-2">Continue with Google</span></a></Button>
+              <a href={google === "own" ? `${API}/auth/google/start?next=${encodeURIComponent(next)}`
+                // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+                : `https://auth.emergentagent.com/?redirect=${encodeURIComponent(window.location.origin + next)}`}><GoogleIcon /><span className="ml-2">Continue with Google</span></a></Button>
             <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div>
           </>)}
           <form onSubmit={send} className="space-y-3">
