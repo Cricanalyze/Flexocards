@@ -33,9 +33,12 @@ _T = [
     ("elite_rose", "Elite Rose Gold", "ROSE", "black_gold_elite", "exclusive", "#FDA4AF", "Rose-gold foil, exclusive to Team.", []),
     ("esports_legend", "Esports Legend", "LEGEND", "esports_pro", "exclusive", "#FBBF24", "Gold HUD for championship rosters.", ["esports"]),
 ]
-TEMPLATES = [{"id": i, "name": n, "badge": b, "layout": lay, "collection": c, "tier": c, "accent": a, "description": d,
-              "recommended": rec, "plans": COLLECTION_PLANS[c], "sports": [], "watermark_free": True, "frame_image": "",
-              "active": True, "order": k} for k, (i, n, b, lay, c, a, d, rec) in enumerate(_T)]
+LEGACY_TEMPLATE_IDS = [t[0] for t in _T]
+try:
+    from backend.template_designs import build as _build_templates
+except ImportError:
+    from template_designs import build as _build_templates
+TEMPLATES = _build_templates(COLLECTION_PLANS)
 
 
 def _ent(**kw):

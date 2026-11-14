@@ -49,19 +49,19 @@ export const BG_PRESETS = [
 ];
 
 export const DEMO_PLAYERS = [
-  { sport: "cricket", template: "legendary_edition", photo: "https://images.unsplash.com/photo-1599982946086-eb42d9e14eb8?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+  { sport: "cricket", template: "cricket_night", photo: "https://images.unsplash.com/photo-1599982946086-eb42d9e14eb8?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     data: { name: "Arjun Mehra", nickname: "The Wall", team: "Coastal Kings XI", jersey: "18", position: "Top-order Batter", country: "Demo", season: "2026", rating: "93",
       tagline: "Built for the long innings.", achievements: ["Player of the Series (fictional)"], stats: { matches: "72", runs: "3,184", wickets: "14", highest_score: "176*", batting_avg: "52.4", strike_rate: "138.6" } } },
-  { sport: "basketball", template: "black_gold_elite", photo: "https://images.pexels.com/photos/20615453/pexels-photo-20615453.jpeg?auto=compress&cs=tinysrgb&w=800",
+  { sport: "basketball", template: "hardwood", photo: "https://images.pexels.com/photos/20615453/pexels-photo-20615453.jpeg?auto=compress&cs=tinysrgb&w=800",
     data: { name: "Marcus Vance", nickname: "The Engine", team: "Harbor City Hawks", jersey: "23", position: "Shooting Guard", country: "Demo", season: "2026", rating: "91",
       tagline: "Clutch in the fourth.", achievements: ["League MVP (fictional)"], stats: { games: "64", points: "1,712", rebounds: "402", assists: "388", steals: "97", blocks: "31" } } },
-  { sport: "football", template: "neon_energy", photo: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+  { sport: "football", template: "pitch_side", photo: "https://images.unsplash.com/photo-1517466787929-bc90951d0974?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     data: { name: "Julian Ortega", nickname: "Rayo", team: "Riverside FC", jersey: "9", position: "Striker", country: "Demo", season: "2026", rating: "88",
       tagline: "Every touch a threat.", achievements: ["Golden Boot (fictional)"], stats: { matches: "38", goals: "27", assists: "11", clean_sheets: "0", pass_acc: "82%", tackles: "19" } } },
-  { sport: "valorant", template: "esports_pro", photo: "https://images.unsplash.com/photo-1542751371-adc38448a05e?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+  { sport: "valorant", template: "jumbotron", photo: "https://images.unsplash.com/photo-1542751371-adc38448a05e?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     data: { name: "Alex Chen", nickname: "VORTEX", team: "Nightfall Esports", jersey: "", position: "Duelist", country: "Demo", season: "S2", rating: "IMM 3",
       tagline: "First in. Last standing.", achievements: ["LAN Champion (fictional)"], stats: { acs: "276", k_d_ratio: "1.42", hs: "31%", adr: "171", first_kills: "212", clutch: "24%" } } },
-  { sport: "tennis", template: "minimal_professional", photo: "https://images.unsplash.com/photo-1595435742656-5272d0b3fa82?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
+  { sport: "tennis", template: "clay_court", photo: "https://images.unsplash.com/photo-1595435742656-5272d0b3fa82?crop=entropy&cs=srgb&fm=jpg&w=800&q=80",
     data: { name: "Elena Rostova", nickname: "", team: "", jersey: "", position: "Singles", country: "Demo", season: "2026", rating: "#14",
       tagline: "Baseline to glory.", achievements: ["3 club titles (fictional)"], stats: { matches: "52", wins: "41", titles: "3", ranking: "14", aces: "286", win: "79%" } } },
 ];

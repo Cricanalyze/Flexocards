@@ -39,9 +39,13 @@ const Box = ({ el, set }) => (
 export function ElementInspector({ k, el, set }) {
   if (k === "photo") return (
     <div className="space-y-3"><Box el={el} set={set} />
-      <div className="grid grid-cols-3 gap-2"><Num label="Corner radius" value={el.radius} onChange={(radius) => set({ radius })} id="photo-radius" />
+      <div className="grid grid-cols-3 gap-2"><Pick label="Shape" value={el.shape || "rect"} options={["rect", "arch", "circle", "hex", "diamond", "shield", "slant"]} onChange={(shape) => set({ shape })} id="photo-shape" />
+        <Num label="Corner radius" value={el.radius} onChange={(radius) => set({ radius })} id="photo-radius" />
+        <Num label="Fade bottom (0–1)" value={el.fade} step={0.05} min={0} max={1} onChange={(fade) => set({ fade })} id="photo-fade" />
         <Num label="Border width" value={el.border_width} onChange={(border_width) => set({ border_width })} min={0} id="photo-border" />
-        <Color label="Border colour" value={el.border_color} onChange={(border_color) => set({ border_color })} id="photo-border" /></div></div>
+        <Color label="Border colour" value={el.border_color} onChange={(border_color) => set({ border_color })} id="photo-border" /></div>
+      <div className="flex flex-wrap gap-4"><Toggle label="Border uses accent" checked={el.border_accent} onChange={(border_accent) => set({ border_accent })} id="photo-border-accent" />
+        <Toggle label="Accent glow" checked={el.glow} onChange={(glow) => set({ glow })} id="photo-glow" /></div></div>
   );
   if (k === "stats") return (
     <div className="space-y-3"><Box el={el} set={set} />
@@ -52,8 +56,12 @@ export function ElementInspector({ k, el, set }) {
         <Color label="Value colour" value={el.value_color} onChange={(value_color) => set({ value_color })} id="value" />
         <Color label="Label colour" value={el.label_color} onChange={(label_color) => set({ label_color })} id="label" />
         <Color label="Box colour" value={el.box_color} onChange={(box_color) => set({ box_color })} id="box" />
-        <Num label="Box opacity (0–1)" value={el.box_alpha} step={0.05} min={0} max={1} onChange={(box_alpha) => set({ box_alpha })} id="box-alpha" /></div>
-      <Toggle label="Accent bar on each stat" checked={el.accent_bar} onChange={(accent_bar) => set({ accent_bar })} id="accent-bar" /></div>
+        <Num label="Box opacity (0–1)" value={el.box_alpha} step={0.05} min={0} max={1} onChange={(box_alpha) => set({ box_alpha })} id="box-alpha" />
+        <Pick label="Style" value={el.style || "boxes"} options={["boxes", "pills", "plain"]} onChange={(style) => set({ style })} id="stat-style" />
+        <Pick label="Align" value={el.align || "left"} options={["left", "center", "right"]} onChange={(align) => set({ align })} id="stat-align" /></div>
+      <div className="flex flex-wrap gap-4"><Toggle label="Accent bar on each stat" checked={el.accent_bar} onChange={(accent_bar) => set({ accent_bar })} id="accent-bar" />
+        <Toggle label="Values use accent" checked={el.value_accent} onChange={(value_accent) => set({ value_accent })} id="value-accent" />
+        <Toggle label="Frosted glass boxes" checked={el.blur} onChange={(blur) => set({ blur })} id="stat-blur" /></div></div>
   );
   return (
     <div className="space-y-3"><Box el={el} set={set} />
@@ -65,10 +73,17 @@ export function ElementInspector({ k, el, set }) {
         <Pick label="Align" value={el.align} options={["left", "center", "right"]} onChange={(align) => set({ align })} id="align" />
         <Color label="Background" value={el.bg_color} onChange={(bg_color) => set({ bg_color })} id="el-bg" />
         <Num label="Background opacity (0–1)" value={el.bg_alpha} step={0.05} min={0} max={1} onChange={(bg_alpha) => set({ bg_alpha })} id="el-bg-alpha" />
-        <Num label="Corner radius" value={el.radius} onChange={(radius) => set({ radius })} min={0} id="el-radius" /></div>
+        <Num label="Corner radius" value={el.radius} onChange={(radius) => set({ radius })} min={0} id="el-radius" />
+        <Num label="Opacity (0–1)" value={el.opacity ?? 1} step={0.05} min={0} max={1} onChange={(opacity) => set({ opacity })} id="el-opacity" />
+        <Color label="Glow / shadow colour" value={el.shadow_color} onChange={(shadow_color) => set({ shadow_color })} id="el-shadow" /></div>
       <div className="flex flex-wrap gap-4"><Toggle label="Use card accent colour" checked={el.use_accent} onChange={(use_accent) => set({ use_accent })} id="use-accent" />
         <Toggle label="UPPERCASE" checked={el.upper} onChange={(upper) => set({ upper })} id="upper" />
-        <Toggle label="Italic" checked={el.italic} onChange={(italic) => set({ italic })} id="italic" /></div></div>
+        <Toggle label="Italic" checked={el.italic} onChange={(italic) => set({ italic })} id="italic" />
+        <Toggle label="Glow / shadow" checked={el.shadow} onChange={(shadow) => set({ shadow })} id="shadow" />
+        <Toggle label="Glow uses accent" checked={el.shadow_accent} onChange={(shadow_accent) => set({ shadow_accent })} id="shadow-accent" />
+        <Toggle label="Outline text" checked={el.outline} onChange={(outline) => set({ outline })} id="outline" />
+        <Toggle label="Background uses accent" checked={el.bg_accent} onChange={(bg_accent) => set({ bg_accent })} id="bg-accent" />
+        <Toggle label="Behind photo" checked={el.behind} onChange={(behind) => set({ behind })} id="behind" /></div></div>
   );
 }
 
@@ -99,8 +114,11 @@ export function CanvasInspector({ g, set }) {
         <Num label="Card corner radius" value={g.radius} min={0} onChange={(radius) => set({ radius })} id="card-radius" />
         <Num label="Card border width" value={g.border_width} min={0} onChange={(border_width) => set({ border_width })} id="card-border" />
         <Color label="Border colour" value={g.border_color} onChange={(border_color) => set({ border_color })} id="card-border" />
+        <Num label="Bottom shade (0–1)" value={g.grad} step={0.05} min={0} max={1} onChange={(grad) => set({ grad })} id="grad" />
+        <Color label="Bottom shade colour" value={g.grad_color} onChange={(grad_color) => set({ grad_color })} id="grad" />
       </div>
-      <Toggle label="Border uses card accent colour" checked={g.border_accent} onChange={(border_accent) => set({ border_accent })} id="border-accent" />
+      <div className="flex flex-wrap gap-4"><Toggle label="Border uses card accent colour" checked={g.border_accent} onChange={(border_accent) => set({ border_accent })} id="border-accent" />
+        <Toggle label="Inner foil frame" checked={g.frame} onChange={(frame) => set({ frame })} id="frame" /></div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ import { defaultDesign } from "@/lib/designDefaults";
 
 const LABEL = (l) => (l === "custom" ? "Custom design (editor)" : l.split("_").map((x) => x[0].toUpperCase() + x.slice(1)).join(" "));
 const COLLECTIONS = { free: ["free", "basic", "pro", "team"], basic: ["basic", "pro", "team"], pro: ["pro", "team"], premium: ["pro", "team"], exclusive: ["team"] };
-const BLANK = { name: "", badge: "NEW", layout: "classic_athlete", collection: "free", plans: COLLECTIONS.free, description: "", accent: "#D4AF37", sports: [], recommended: [], frame_image: "", watermark_free: true, active: false, order: 100, design: {} };
+const BLANK = { name: "", badge: "NEW", layout: "custom", collection: "free", plans: COLLECTIONS.free, description: "", accent: "#D4AF37", sports: [], recommended: [], frame_image: "", watermark_free: true, active: false, order: 100, design: {} };
 const strip = ({ id, tier, ...b }) => ({ ...BLANK, ...b, order: Number(b.order) || 0 });
 
 function FrameUpload({ value, onChange }) {

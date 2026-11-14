@@ -14,7 +14,7 @@ import { PageSkeleton } from "@/components/Skeletons";
 const TABS = [["sport", "1 Sport"], ["design", "2 Design"], ["photo", "3 Photo"], ["details", "4 Details"], ["stats", "5 Stats"], ["style", "6 Style"]];
 
 function useCardState() {
-  const [state, setState] = useState({ sportId: "", templateId: "classic_athlete", data: blankData(null), photo: blankPhoto });
+  const [state, setState] = useState({ sportId: "", templateId: "prizm_silver", data: blankData(null), photo: blankPhoto });
   const hist = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
   const update = (patch, record = true) => setState((s) => {
@@ -102,7 +102,7 @@ export default function Create() {
     sportId: s.id,
     data: { ...st.data, statKeys: s.stats.slice(0, 6).map((x) => x.key), show: { ...defaultShow(s.kind), social: st.data.show.social },
       stats: Object.fromEntries(Object.entries(st.data.stats).filter(([k]) => s.stats.some((x) => x.key === k))) },
-    templateId: record && s.kind === "esports" && st.templateId === "classic_athlete" ? "esports_pro" : st.templateId,
+    templateId: record && s.kind === "esports" && st.templateId === "prizm_silver" ? "jumbotron" : st.templateId,
   }), record);
 
   useEffect(() => {

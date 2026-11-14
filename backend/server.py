@@ -303,6 +303,11 @@ async def storybook_reminder_loop():
 
 async def prepare_db():
     await auth_indexes()
+    if not await db.meta.find_one({"id": "templates_v5"}):
+        await db.templates.delete_many({"id": {"$nin": [t["id"] for t in TEMPLATES]}})
+        for t in TEMPLATES:
+            await db.templates.replace_one({"id": t["id"]}, t, upsert=True)
+        await db.meta.insert_one({"id": "templates_v5", "at": iso()})
     for old, new in RETIRED_ROLES.items():
         await db.users.update_many({"role": old}, {"$set": {"role": new}})
     await migrate_catalog()
@@ -1510,7 +1515,7 @@ class TemplateIn(BaseModel):
         if len(json.dumps(v)) > 60000:
             raise ValueError("Template design is too large")
         bg = v.get("bg_image") or ""
-        if bg and not bg.startswith(("/api/files/", "https://")):
+        if bg and not bg.startswith(("/api/files/", "https://", "/templates/")):
             raise ValueError("Background image must be an uploaded image")
         return v
 
